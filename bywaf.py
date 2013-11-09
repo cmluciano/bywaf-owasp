@@ -588,7 +588,7 @@ class WAFterpreter(Cmd):
        
 
        # construct the format string:  left-aligned, space-padded, minimum.maximum
-       format_string = '{:<15.15} {:<15.15} {:<15.15} {:<15.15} {:<15.15}'
+       format_string = '{:<15.15} {:<15.15} {:<15.15} {:<15.15} {:<15.30}'
        
        # print the header
        print('\n\n')
@@ -614,7 +614,7 @@ class WAFterpreter(Cmd):
        # loop through the plugin's available options and display them
        for command_name in sorted(self.current_plugin.commands):
            command_docstring = getattr(self.current_plugin, command_name).__doc__
-           print(format_string.format(command_name, command_docstring))
+           print(format_string.format(command_name[3:], command_docstring))
            
    # completion function for the do_set command: return available option names
    def complete_show(self,text,line,begin_idx,end_idx):
