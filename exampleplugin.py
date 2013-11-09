@@ -1,6 +1,6 @@
-# test.py:  test plugin for Bywaf
+# exampleplugin.py:  a model example plugin for Bywaf
 
-print "loaded Test plugin"
+print "loaded example plugin"
 
 # required dictionary
 options = {
