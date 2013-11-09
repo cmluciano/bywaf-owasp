@@ -496,11 +496,11 @@ class WAFterpreter(Cmd):
        print('{} jobs total:  {} complete, {} running\n'.format(total_jobs, jobs_completed, total_jobs-jobs_completed))
        
        # construct the format string:  left-aligned, space-padded, minimum.maximum
-       format_string = "{:<4.4} {:<15.15} {:<15.15}"
+       format_string = "{:<4.4} {:<20.20} {:<15.15}"
        
        # print the header
        print(format_string.format("ID", "Command", "Status"))
-       print(format_string.format(*["-"*15]*3))
+       print(format_string.format(*["-"*20]*3))
        
        # loop through the jobs and display each
        for j in self.jobs:
@@ -530,11 +530,11 @@ class WAFterpreter(Cmd):
        """Show global variables."""
        
        # construct the format string:  function name, description
-       format_string = '{:<15.15} {}'
+       format_string = '{:<20.20} {}'
        
        # print the header
        print(format_string.format('Global Option', 'Value'))
-       print(format_string.format(*["-"*15] * 5))
+       print(format_string.format(*["-"*20] * 2))
 
        for k in sorted(self.global_options.keys()): 
            print(format_string.format(k, self.global_options[k]))
@@ -588,7 +588,7 @@ class WAFterpreter(Cmd):
        
 
        # construct the format string:  left-aligned, space-padded, minimum.maximum
-       format_string = '{:<10.10} {:<15.15} {:<15.15} {:<15.15} {:<15.15}'
+       format_string = '{:<15.15} {:<15.15} {:<15.15} {:<15.15} {:<15.15}'
        
        # print the header
        print('\n\n')
@@ -604,12 +604,12 @@ class WAFterpreter(Cmd):
        # ------ show this plugin's available commands -----------
        
        # construct the format string:  function name, description
-       format_string = '{:<15.15} {}'
+       format_string = '{:<20.20} {}'
        
        # print the header
        print('\n\n')
        print(format_string.format('Command', 'Description'))
-       print(format_string.format(*["-"*15] * 2))
+       print(format_string.format(*["-"*20] * 2))
 
        # loop through the plugin's available options and display them
        for command_name in sorted(self.current_plugin.commands):
