@@ -181,7 +181,7 @@ class WAFterpreter(Cmd):
             # list of commands for the currently-selected plugin
             command_names = []
             if self.current_plugin: 
-                command_names = [c.__name__ for c in self.current_plugin.commands]
+                command_names = self.current_plugin.commands
 
             # if user requested it, background the job
             # do not do this for internal commands                
@@ -306,9 +306,6 @@ class WAFterpreter(Cmd):
                raise Exception('Could not load plugin module: {}'.format(e))
                                               
        # verify that this module has the necessary Bywaf infrastructure
-       if not hasattr(py_mod, "commands"): 
-           raise Exception("commands dictionary not found")
-           
        if not hasattr(py_mod, "options"):
            raise Exception("options dictionary not found")
            
@@ -370,12 +367,16 @@ class WAFterpreter(Cmd):
        if self.current_plugin:
            for _command in self.current_plugin.commands:
                command = _command.__name__
-               if hasattr(self, command):  delattr(self, 'do_'+command)
-               if hasattr(self, 'help_'+command):  delattr(self, 'help_'+command)
-               if hasattr(self, 'complete_'+command):  delattr(self, 'complete_'+command)
+               if hasattr(self, command):  delattr(self, command)
+               if hasattr(self, 'help_'+command):  delattr(self, 'help_'+command[5:])
+               if hasattr(self, 'complete_'+command):  delattr(self, 'complete_'+command[10:])
 
        # register with our list of modules (i.e., insert into our dictionary of modules)
        self.plugins[new_module_name] = new_module
+       
+       
+       commands = [f for f in dir(new_module) if f.startswith('do_')]
+       self.plugins[new_module_name].commands = commands
        
        # set current plugin
        # and change the prompt to reflect the plugin's name
@@ -384,25 +385,23 @@ class WAFterpreter(Cmd):
        self.current_plugin = new_module
        
        # add module's functions to the Cmd command list
-       for command in new_module.commands:
+       for command_name in new_module.commands:
            
-           command_name = command.__name__  
-
            # register the command 
            # it is a tuple of the form (function, string)
            command_func = getattr(new_module, command_name)
-           setattr(self, 'do_'+command_name, command_func)
+           setattr(self, command_name, command_func)
 
            # try and register its optional help function, if one exists
            try:
-               helpfunc = getattr(new_module, 'help_' + command_name)
+               helpfunc = getattr(new_module, 'help_' + command_name[5:])
                setattr(self, 'help' + command_name, helpfunc)
            except:
                pass 
                
            # try and register its optional completion function, if one exists
            try:
-               completefunc = getattr(new_module, 'complete_' + command_name)
+               completefunc = getattr(new_module, 'complete_' + command_name[10:])
                setattr(self, 'complete_' + command_name, completefunc)
            except:
                pass
@@ -663,8 +662,9 @@ class WAFterpreter(Cmd):
        print(format_string.format(*["-"*15] * 2))
 
        # loop through the plugin's available options and display them
-       for func in sorted(self.current_plugin.commands):
-           print(format_string.format(func.__name__, func.__doc__))
+       for command_name in sorted(self.current_plugin.commands):
+           command_docstring = getattr(self.current_plugin, command_name).__doc__
+           print(format_string.format(command_name, command_docstring))
            
    # completion function for the do_set command: return available option names
    def complete_show(self,text,line,begin_idx,end_idx):
