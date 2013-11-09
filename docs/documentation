@@ -1,0 +1,187 @@
+Developer documentation
+=======================
+
+Bywaf is a tool for streamlining web application firewall auditing.
+It consists of a command-line interpreter and a set of plugins.
+This document describes the Bywaf application's architecture, the API
+it provides for plugins and the requirements for writing plugins.
+
+
+Table of contents
+----------------
+1. Architectural overview
+2. Overridden Cmd methods
+3. Native Wafterpreter methods
+4. Wafterpreter API and utility methods
+5. Plugin requirements
+
+
+Architectural overview
+----------------------
+
+The Bywaf application is built on Python's built-in cmd.Cmd class. Cmd
+is a lightweight command interpreter loop that provides several useful
+facilities for the developer, including overridable hook methods and
+easy addition of commands and help.  For the user, it offers
+commandline editing with readline, including automatic tab completion
+of commands, command options and filenames.
+
+Bywaf contains a sub-classed version of Cmd called Wafterpreter, which
+adds some important additions, including:
+
+   - Loading and selecting plugins
+   - Getting and setting global and per-plugin options
+   - Additional methods exposing functionality to the plugins
+   - Backgrounding jobs, ending running jobs and querying job status
+   - Loading scripts from the the command-line or within the interpreter   
+   - Loading, saving, showing and clearing the command history
+
+Wafterpreter employs a simple plugin system consisting of python
+modules containing a list of commands exposed to the user ("commands")
+and a dictionary of user-modifiable options ("options").  When
+do_use() loads a plugin, it provides a link to its own instance by
+setting the loaded module's "app" property to "self". 
+
+A number of Wafterpreter methods have been exposed to plugins,
+allowing them to change the interpreter's behavior and access other
+modules' options.  
+
+
+Overriden Cmd methods
+---------------------
+
+In order to accommodate the extra functionality required by Bywaf,
+Wafterpreter overrides the following Cmd methods:
+
+  - onecmd(): executes a user command.  Overriden to add job
+    backgrounding functionality.
+  - postcmd(): called on completion of a user command.  Overridden to
+    notify user of completed jobs.
+  - postloop(): called on exit from the command loop.  Overridden to
+    display a farewell message.
+  - emptyline(): called on empty input lines. The default
+    Cmd.emptyline() returns True, causing Cmd.commandloop() to exit.
+    Overridden to return nothing. 
+  - getnames(): Overridden to return list of instance properties
+    ("self") rather than class properties ("self.__class__"), thus
+    including dynamically-added command functions.
+  - completenames(): overridden to add a space to first-level
+    completion of commands.
+
+
+Built-in Wafterpreter commands
+------------------------------
+
+Internal commands are added in the Wafterpreter's class definition.
+Wafterpreter scans its class definition and exposes methods starting
+with "do_" to the use as executable commands. 
+
+A plugin may also specify commands; when load_module() loads a plugin
+via the do_use() command, it scans the functions listed in its
+"commands" dictionary and dynamically adds them to the Wafterpreter
+instance with a "do_" prefix, rendering them executable by the user. 
+
+The following native commands are available in Wafterpreter:
+
+  - do_use(): select a module.  Tab-completes filenames.
+  - do_kill(): kills a running command.  Tab-completes to running
+    commands in the job queue.
+  - do_d(): removes a completed command from the job queue.
+    Tab-completes to completed commands in the job queue.
+  - do_result(): displays the return result of a completed command.
+    Tab-completes to completed commands in the job queue.
+  - do_script(): executes a script given a filename.  A script is a
+    list of commands, one per line.  Among other things, this is useful
+    for loading a configuration.  Tab-completes filenames.
+  - do_gshow(): shows global options.  Tab-completes global options.
+  - do_set(): when a plugin is loaded, do_set() shows its options and
+    functions available to the user.  Tab-completes option names.
+  - do_show(): shows the currently-selected plugin's options and
+    commands available to the user.  Tab-completes option names.
+  - do_shell(): executes a command in a system shell.  Does not
+    tab-complete.
+  - do_history(): shows, clears, loads and saves the command history.
+    This is a multi-level command which first tab-completes "show",
+    "clear", "load" and "save", and for "load" and "save"
+    tab-completes filenames.
+    
+  - complete_ functions: Commands may have a corresponding
+    tab-completion function.  This gets called after a user types the
+    command name and hits the tab key.  complete_ functions are
+    expected to return a list of matching completions to the 
+    command-line string.  
+    
+    A utility method named "filename_completer()" is available for
+    completing filenames on POSIX-compliant systems.
+
+  - help_ functions: Commands may have a corresponding help function,
+    prefixed with "help_".  This is called when the user issues "help"
+    on that command.  It is expected to return a string with help
+    documentation.  If a corresponding help_ function does not exist,
+    then help documentation will be taken from the command's
+    docstring. 
+
+
+Wafterpreter API and utility methods
+------------------------------------
+
+The Wafterpreter API encompasses methods used by both the plugins as
+well as the Wafterpreter's own methods; this allows for plugins to
+refining its behavior by assigning their own methods in their place.
+Utility methods are time-saving shortcuts; while the API methods are
+the preferred way to change the interpreter's behavior and to perform
+queries for jobs.  
+
+  - filename_completer(): a utility method and API that when given a set
+    of starting and ending indices of the current word under the
+    command-line cursor, returns the available filenames the word
+    matches.  This parameters to this method are supplied to
+    completion methods, which can in turn pass them to this method.
+  - get_job(): this utility method retrieves a Futures instace from the
+    Wafterpreter's internal list of completed and running jobs, given
+    its job ID.  This is useful in querying information about
+    individual jobs (see do_kill() for an example). 
+   - finished_job_callback(): This overridable method is called upon the
+    completion of a backgrounded job.  It is used by the onecmd()
+    method to notify the user when a backgrounded job has finished.
+  - set_prompt(): an API method for setting the prompt to reflect a
+    new plugin name.
+  - get_history_item(): an API method returning the command history
+  - save_history(): an API method for saving the command history to a file
+  - load_history(): an API method for loading the command history from a file
+  - clear_history(): an API method for clearing the command history
+  - _load_module(): a private low-level method for loading modules.
+    Gets called by do_use().  There should not be a reason for
+    its use outside that method. 
+
+
+Plugin requirements
+-------------------
+
+A plugin is a module loaded with the do_use() command.  At a minimum,
+it is expected to implement a dictionary of user options and a list of
+zero or more user commands.
+
+The expected user commands list must take the form [func1, func2, ...,
+funcN], where func1, func2, ..., funcN are names of functions defined
+in the plugin's module. 
+
+The expected options dictionary must take the form {option_name: name,
+value, default_value, required, description }, where 'option_name' is
+a string containing the option's name, 'value' is a string containing
+the option's current value, 'default_value' is a string containing the
+option's default value, 'required' is a string of "Yes" or "No"
+describing whether or not this option must be set, and "description"
+is a one-line description of the option.  
+
+An example plugin definition appears in test.py.
+
+
+Design considerations
+---------------------
+[tbd]
+
+
+   
+
+
