@@ -10,7 +10,7 @@ options = {
   }
 
 
-def sleepfunction(line):
+def do_sleepfunction(line):
     """sleep for a few seconds"""
 
     # use current value, defaulting to the default value if no current
@@ -29,7 +29,7 @@ def sleepfunction(line):
     return "this is the return value after having slept {} seconds.".format(seconds)
 
 
-def cat(line):
+def do_cat(line):
     """display contents of a file"""
     
     # if user did not supply an argument at command-line, then 
@@ -64,12 +64,12 @@ def complete_cat(text,line,begin_idx,end_idx):
     return app.filename_completer(text, line, begin_idx, end_idx)
 
 # Read a file and return its contents.
-def _cat(fn):
+def cat(fn):
     with open(fn) as f:
         contents = f.read()
     return contents
     
-def choice(line):
+def do_choice(line):
     """Select a subcommand"""
     print('this is another command')
     
@@ -79,5 +79,3 @@ def complete_choice(text,line,begin_idx,end_idx):
    opts = [x for x in option_names if x.startswith(text)]
    return opts                                     
 
-# required dictionary
-commands = [sleepfunction, cat, choice]
