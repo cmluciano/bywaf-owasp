@@ -1,0 +1,65 @@
+===============================================================================
+   
+   Copyright (C) 2013  Rafael Gil ByWaf Team OWASP
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    Rafael Gil any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+Contact:
+https://www.owasp.org/index.php/OWASP_Bywaf_Project
+rafael.gillarios@owasp.org
+skype: depasonic0
+
+===============================================================================
+
+Installation
+------------
+
+   1. Prerequisites (platform independent)
+   2. Prerequisites (Linux)
+   3. Install instructions
+   4. Run instructions
+
+
+
+   1. Prerequisites (platform independent)
+
+      ByWaf requires python 2.7 or 3.3 and python-concurrent.futures. It can be installed by:
+
+      https://pypi.python.org/pypi/futures (lastest version)
+      python setup.py install
+
+   
+
+   2. Prerequisites (Linux)
+
+      ByWaf requires python 2.7 or 3.3 and python-concurrent.futures. It can be installed by:
+
+      https://pypi.python.org/pypi/futures (lastest version)
+      python setup.py install
+
+	  
+ 
+   3. Install instructions
+   
+      Obtain application code either by downloading an archive from https://github.com/depasonico/bywaf-owasp/ or cloning the GIT repo
+
+	  Extrac and navigate to the bywaf source directory.
+
+
+   4. Run instructions
+
+      Simply run:
+
+      python bywaf.py
