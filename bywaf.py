@@ -219,8 +219,6 @@ class WAFterpreter(Cmd):
        # construct a new option tuple and set the option to it       
        self.current_plugin.options[name] = value, _defaultvalue, _required, _descr
        
-#   def get_option(self, name):
-  
    # return a Futures object given its job ID as a string or int
    def get_job(self, _job_id):
 
@@ -237,13 +235,11 @@ class WAFterpreter(Cmd):
            pass
        
        return job
-       
    
    # update list of newly-finished jobs 
    def finished_job_callback(self, finished_job):
        self.finished_jobs.append(finished_job)
        
-
    # physically load a module (called from do_import)
    # implementation adapted from http://stackoverflow.com/questions/301134/dynamic-module-import-in-python   
    def _load_module(self, filepath):
@@ -276,7 +272,6 @@ class WAFterpreter(Cmd):
        # return the loaded module
        return mod_name, py_mod
    
-
    # set the prompt to the given plugin name
    def set_prompt(self, plugin_name):
        try:   # can fail if no plugin is loaded (i.e. plugin_name=="")
@@ -372,7 +367,6 @@ class WAFterpreter(Cmd):
            
    # alias use()'s completion function to the filename completer
    complete_use = filename_completer 
-        
 
    # attempt to cancel a running job
    def do_kill(self, args):
@@ -432,7 +426,6 @@ class WAFterpreter(Cmd):
        opts = [x+' ' for x in job_ids if x.startswith(text)]
        return opts                        
            
-        
    def do_result(self, _job_id):
        """show the result of a job given its ID number"""
        
@@ -487,8 +480,6 @@ class WAFterpreter(Cmd):
    # alias script()'s completion function to the filename completer
    complete_script = filename_completer
    
-      
-
    def do_jobs(self, args):
        """list the status of running and completed jobs"""
        
@@ -521,7 +512,6 @@ class WAFterpreter(Cmd):
            elif j.paused():
                status = 'Paused'  # not sure if this is reached
            print(format_string.format( str(j.job_id), j.command_line, status ))
-
         
    def do_gset(self, args):
        """set a global variable.  This command takes the form 'gset VARNAME VALUE'."""
@@ -531,12 +521,10 @@ class WAFterpreter(Cmd):
        
        print('{} => {}'.format(key, value))
        
-       
    # completion function for the do_gset command: return available global option names
    def complete_gset(self,text,line,begin_idx,end_idx):
        option_names = [opt+' ' for opt in self.global_options.keys() if opt.startswith(text)]
        return option_names       
-       
        
    def do_gshow(self, args):
        """Show global variables."""
@@ -556,7 +544,6 @@ class WAFterpreter(Cmd):
        option_names = [opt+' ' for opt in self.global_options.keys() if opt.startswith(text)]
        return option_names                  
            
-           
    def do_set(self, arg):
        """set a plugin's local variable.  This command takes the form 'set VARNAME VALUE'."""
 
@@ -570,7 +557,6 @@ class WAFterpreter(Cmd):
        self.set_option(name, value)
 
        print('{} => {}'.format(name, value))
-
 
    # completion function for the do_set command: return available option names
    def complete_set(self,text,line,begin_idx,end_idx):
@@ -669,7 +655,6 @@ class WAFterpreter(Cmd):
        elif cmd[0]=='clear':
            self.clear_history()
        
-       
    # completion function for the do_history command:  two-level completion (subcommand, then filename)
    def complete_history(self,text,line,begin_idx,end_idx):
        
@@ -702,17 +687,15 @@ class WAFterpreter(Cmd):
        
 
 if __name__=='__main__':
-    
-    parser = argparse.ArgumentParser(description='Bypass web application firewalls')
-    
 
+    # parse arguments
+    parser = argparse.ArgumentParser(description='Bypass web application firewalls')
     parser.add_argument('--input', dest='inputfilename', action='store', help='read input from a file')
     parser.add_argument('--script', dest='scriptfilename', action='store', help='execute a script and stay in wafterpreter')
     parser.add_argument('--out', dest='outfilename', action='store', help='redirect output to a file')
-    
-    
     args = parser.parse_args()
-    
+
+    # assign default input and output streams
     input = sys.stdin
     output = sys.stdout
 
@@ -742,14 +725,12 @@ if __name__=='__main__':
         pass
     
     # execute a script if the user specified one
-
     if args.scriptfilename:
         try:
             wafterpreter.do_script(args.scriptfilename)                                
         except IOError as e:
             print('Could not open script file: {}'.format(e))
             sys.exit(3)
-
 
     # begin accepting commands
     wafterpreter.cmdloop()
