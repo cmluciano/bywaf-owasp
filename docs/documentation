@@ -37,10 +37,10 @@ adds some important additions, including:
    - Loading, saving, showing and clearing the command history
 
 Wafterpreter employs a simple plugin system consisting of python
-modules containing a list of commands exposed to the user ("commands")
-and a dictionary of user-modifiable options ("options").  When
-do_use() loads a plugin, it provides a link to its own instance by
-setting the loaded module's "app" property to "self". 
+modules containing commands exposed to the user (functions starting
+with "do_") and a dictionary of user-modifiable options ("options").
+When do_use() loads a plugin, it provides a link to its own instance
+by setting the loaded module's "app" property to "self". 
 
 A number of Wafterpreter methods have been exposed to plugins,
 allowing them to change the interpreter's behavior and access other
@@ -159,20 +159,18 @@ Plugin requirements
 -------------------
 
 A plugin is a module loaded with the do_use() command.  At a minimum,
-it is expected to implement a dictionary of user options and a list of
-zero or more user commands.
+it is expected to implement a dictionary of user options.
 
-The expected user commands list must take the form [func1, func2, ...,
-funcN], where func1, func2, ..., funcN are names of functions defined
-in the plugin's module. 
-
-The expected options dictionary must take the form {option_name: name,
+This expected options dictionary must take the form {option_name: name,
 value, default_value, required, description }, where 'option_name' is
 a string containing the option's name, 'value' is a string containing
 the option's current value, 'default_value' is a string containing the
 option's default value, 'required' is a string of "Yes" or "No"
 describing whether or not this option must be set, and "description"
 is a one-line description of the option.  
+
+Functions that are exposed to the user as a command must have names
+starting with "do_".
 
 An example plugin definition appears in test.py.
 
