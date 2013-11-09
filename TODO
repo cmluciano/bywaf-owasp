@@ -1,0 +1,36 @@
+# TODO:
+    
+# use global vars' settings instead of hardcoding MAX_CONCURRENT_JOBS and HISTORY_FILENAME
+# - (if changing MAX_CONCURRENT_JOBS, either change it in the Executor or make a new Executor)
+# - Fix:  do_kill(): calling cancel() doesn't end Futures job 
+# - Fix:  do_shell(): &-backgrounded shell operations stay in "Running" state
+# - Formally document the WAFterpreter class, the plugin model, and the user interface
+# - Clean up, refactor and simplify code to keep LOCs down
+
+# [CANCELED] capture return value of do_shell() (needed?) 
+# [CANCELED] Uncouple job results from Futures objects (see *)
+# [CANCELED] Move global_options to the same "options" format used by plugins
+# [DONE] move from Python 2.x "%d" % x -> Python 3.x "{}".format(x) -> ByWAF is now Python2/3 compatible
+# [DONE] move from Python 2.x print -> Python 3.x print()
+# [DONE] tab completion for gset()/gshow() & clean them from errors
+# [DONE] Get quit/exit to work
+# [DONE] Add commands to show/load/save command history
+# [DONE] Load scripts from standard input, command-line option and from the interpreter (do_script)
+# [DONE] Ignore comments on command line (comments start wth '#')
+# [DONE] implement shell access
+# [DONE] Convert verification if()'s to try/except (state the intent right off, not couched in an if statement)
+# [DONE] Implement complete_ funcs for all do_ funcs
+# [DONE] Implement filename tab completion for the 'use' command (see complete_eggs issue)
+# [DONE] Implement a help for the environment variables that shows:   <option name>  <current value>  <default value>  <required>  <description>
+# [DONE] fix the help system (override get_names() and such)
+# [DONE] finish implementing do_d(). Iterate over and delete job with matching task ID
+# [DONE] do not allow internal commands to be backgrounded
+# [DONE] drop Cement dependency
+
+# (*)
+# since we plan on being able to background internal commands, then:
+# uncouple results from Futures (and save all command outputs uniformly, whether or not they have backgrounded).
+# so that way we can capture results of foregrounded jobs as well. 
+# do this by writing the callback to move finished output from the Futures result to a master list of results.
+
+
