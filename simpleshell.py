@@ -74,7 +74,9 @@ def shell_input_handler(line):
     
     # insert code here to run a command through the open shell object, assumes
     try:
-        current_shell_session.run(line)
+        response = current_shell_session.run(line)
+        print(response)
+        
     except TypeError: # shellobject==None
         print("no shells currently open")
         return
@@ -90,8 +92,10 @@ def do_cd(line):
     
     try:
         current_shell_session.setcwd(newcwd)
+        
     except TypeError: # shellobject==None
         print("no shells currently open")
+        
     except IOError: # target dir not found
         print("target directory not found")
 
@@ -139,13 +143,3 @@ def do_bw(line):
 # FIXME:  Implement this    
 def complete_shell(self,text,line,begin_idx,end_idx):
     pass
-
-
-
-
-# FIXME:  Implement this
-# code is borrowed from Cmd.complete(), and makes necessary changes to give priority to 
-# commands in this module (otherwise they are skipped because the delegate input function gets executed)
-def complete(
-    
-       
