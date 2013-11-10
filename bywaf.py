@@ -31,6 +31,8 @@ class WAFterpreter(Cmd):
       self.intro = "Welcome to Bywaf"      
       self.base_prompt = "Bywaf" 
       self.set_prompt('') # set the prompt
+      self.delegate_input_handler = None # no delegated input by default
+      
 
       # currently loaded plugins, loaded & selected with he "use" command.
       # is a dictionary of { "plugin_name" : loaded_module_object }
@@ -93,13 +95,18 @@ class WAFterpreter(Cmd):
            
    # override completenames() to give an extra space (+' ') for completed command names
    # and to better matches bash's completion behavior 
-   def completenames(self, text, *ignored):
+   def completenames(self, text, state):
         dotext = 'do_'+text
         return [a[3:]+' ' for a in self.get_names() if a.startswith(dotext)]
 
    # override Cmd.onecmd() to enable user to background a task
    def onecmd(self, _line):
- 
+
+        # call the delegation function first, if it has been defined
+        if self.delegate_input_handler:
+            self.delegate_input_handler(_line)
+            return
+
         # flag variable
         exec_in_background = False
         
@@ -209,7 +216,26 @@ class WAFterpreter(Cmd):
                       completions.append(f+'/')
                       
       return completions
+
   
+   # set input handler: all input will be redirected to the input handler 'delegate_func'
+   def set_delegate_input_handler(self, delegate_func):
+       
+       # set the delegated input handler
+       self.delegate_input_handler = delegate_func
+       
+
+   # restore Bywaf normal input handling functionality
+   def unset_delegate_input_handler(self):
+       
+       # restore old prompt
+       self.set_prompt(self.current_plugin_name)  # fix this
+       
+       # cancel further input delegation
+       self.delegate_input_handler = None
+       
+       
+       
    # set an option's value.  Called by do_set()            
    def set_option(self, name, value):
 
@@ -392,8 +418,7 @@ class WAFterpreter(Cmd):
    def complete_kill(self,text,line,begin_idx,end_idx):
        job_ids  = [str(j.job_id) for j in self.jobs if not j.done()]
        opts = [x+' ' for x in job_ids if x.startswith(text)]
-       return opts                                     
-             
+       return opts
 
    def do_d(self, args):
        """remove one or more completed jobs from the jobs queue"""
@@ -471,8 +496,7 @@ class WAFterpreter(Cmd):
                for line in scriptfile:
                    # ...adding it to the command queue in turn.  
                    # This is a more elegant appraoch than calling self.onecmd())
-                   print('Appending line "{}"'.format(line))
-                   self.cmdqueue.append(line)
+                   self.cmdqueue.append(line)                   
                    
        except IOError as e: 
            print('Could not load script file: {}'.format(e))
