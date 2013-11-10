@@ -12,7 +12,8 @@ options = {
   ('PORT',       '',            '22/tcp',   'no',      'Port/protocol of the remote host'),
   ('CWD',        '',            '',         'no',      'Current working directory to set on the remote host account'),
   ('USERNAME',   '',            '',         'yes',     'User name of remote host account'),
-  ('PASSWORD',   '',            '',         'yes',     'User password of remote host account')
+  ('PASSWORD',   '',            '',         'yes',     'User password of remote host account'),
+  ('TITLE',      '',            '',         'no',      'Title of the new shell'),
   }
 
   
@@ -20,8 +21,9 @@ options = {
 class SimpleShell:
     
     # open a new shell-like object, with current_working_directory defaulting to None
-    def __init__(self, current_working_directory=None):
+    def __init__(self, title=None, current_working_directory=None):
         self.cwd = current_working_directory
+        self.title = ''
     
     def setcwd(self, newcwd):
         self.cwd = newcwd
@@ -38,7 +40,7 @@ class SimpleShell:
 # FIXME: implement this    
 class SimpleSSHShell(SimpleShell):
 
-    def __init__(self, current_working_directory, remote_host, remote_port, username, password):
+    def __init__(self, title, current_working_directory, remote_host, remote_port, username, password):
         super(SimpleSSHShell).__init__(current_working_directory)
         
         self.rhost = remote_host
@@ -63,9 +65,9 @@ current_shell_session = None
     
 # utility function to set the prompt to reflect the current working directory  
 def set_prompt():
-    import os
-    cwd = os.getcwd()
-    app.set_prompt('exampleshell: {}'.format(cwd))
+    cwd = current_shell_session.getcwd()
+    title = current_shell_session.title
+    app.set_prompt('exampleshell[{}]: {}'.format(title, cwd))
     
 def shell_input_handler(line):
     """simulate the system shell"""
@@ -86,8 +88,6 @@ def do_cd(line):
     
     newcwd = line.split(0)
     
-    # insert code here to make sure that this is a valid directory for the shell object
-    
     try:
         current_shell_session.setcwd(newcwd)
     except TypeError: # shellobject==None
@@ -103,7 +103,7 @@ def do_shell(line):
     
     # subcommands to expose to the user:
         
-    # new
+    # new       - creates a new shell, assigning it a numeric title if one is not provided
     #   local   
     #   remote  - takes optional remote host, remote port, username, 
     #             password (also settable through options{})
