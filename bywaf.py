@@ -655,29 +655,31 @@ class WAFterpreter(Cmd):
        
        cmd = params.split()
        
-       if cmd[0]=='load':
-           try:
-               fname = cmd[1]
-               self.load_history(fname)
-           except IndexError: # no filename specified
-               print('filename not specified')
-           except IOError as e: # error in loading file
-               print('could not load file: {}'.format(e))
+       try:
+           if cmd[0]=='load':
+               try:
+                   fname = cmd[1]
+                   self.load_history(fname)
+               except IndexError: # no filename specified
+                   print('filename not specified')
+               except IOError as e: # error in loading file
+                   print('could not load file: {}'.format(e))
+           elif cmd[0]=='save':
+               try:
+                   fname = cmd[1]
+                   self.save_history(fname)
+               except IndexError: # no filename specified
+                   print('filename not specified')
+               except IOError as e: # error in saving file
+                   print('could not write file: {}'.format(e))
+    
+           elif cmd[0]=='show':
+               print('\n'.join(self.get_history_items()))
                
-       elif cmd[0]=='save':
-           try:
-               fname = cmd[1]
-               self.save_history(fname)
-           except IndexError: # no filename specified
-               print('filename not specified')
-           except IOError as e: # error in saving file
-               print('could not write file: {}'.format(e))
-
-       elif cmd[0]=='show':
-           print('\n'.join(self.get_history_items()))
-           
-       elif cmd[0]=='clear':
-           self.clear_history()
+           elif cmd[0]=='clear':
+               self.clear_history()
+       except IndexError:
+           print('no files in history')
        
    # completion function for the do_history command:  two-level completion (subcommand, then filename)
    def complete_history(self,text,line,begin_idx,end_idx):
