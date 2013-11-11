@@ -95,13 +95,13 @@ class WAFterpreter(Cmd):
            
    # override completenames() to give an extra space (+' ') for completed command names
    # and to better matches bash's completion behavior 
-   def completenames(self, text, state):
+   def completenames(self, text, line, begidx, endidx, level=1):
         dotext = 'do_'+text
         return [a[3:]+' ' for a in self.get_names() if a.startswith(dotext)]
 
    # override Cmd.onecmd() to enable user to background a task
    def onecmd(self, _line):
-
+       
         # call the delegation function first, if it has been defined
         if self.delegate_input_handler:
             self.delegate_input_handler(_line)
