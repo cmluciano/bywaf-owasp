@@ -193,9 +193,9 @@ where:
   - "description" is a one-line description of the option.  
 
 A plugin module's functions will automatically be exposed as commands
-to the user if their names start with "do_".  These functions can be
+to the user if their names start with "do_".  These functions may be
 complemented with help_ and complete_ functions, just do_ methods in
-the Wafterpreter's class definition can be complemented with complete_
+the Wafterpreter's class definition may be complemented with complete_
 and help_ methods. 
 
 An example plugin definition appears in test.py.
