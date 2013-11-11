@@ -192,11 +192,11 @@ where:
     option must be set, and 
   - "description" is a one-line description of the option.  
 
-A plugin module's functions will automatically be exposed as user
-commands if their names start with "do_".  These functions can be
-complemented with help_ and complete_ functions, just as do_, help_
-and complete_ methods are defined in the Wafterpreter's class
-definition. 
+A plugin module's functions will automatically be exposed as commands
+to the user if their names start with "do_".  These functions can be
+complemented with help_ and complete_ functions, just do_ methods in
+the Wafterpreter's class definition can be complemented with complete_
+and help_ methods. 
 
 An example plugin definition appears in test.py.
 
