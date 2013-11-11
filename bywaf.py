@@ -41,12 +41,10 @@ class WAFterpreter(Cmd):
       # dictionary of global variable names and values
       self.global_options = {} 
       
-      #!exceptions regarding cmd stop early when this variable is not initiated!
-      self.old_completename = self.completenames
       
       # jobs are spawned using this object's "submit()"
       self.job_executor = concurrent.futures.ProcessPoolExecutor(MAX_CONCURRENT_JOBS)      
-#      self.job_executor = concurrent.futures.ThreadPoolExecutor(MAX_CONCURRENT_JOBS)
+      # self.job_executor = concurrent.futures.ThreadPoolExecutor(MAX_CONCURRENT_JOBS)
 
       # running counter, increments with every job; used as Job ID
       self.job_counter = 0 
