@@ -604,7 +604,7 @@ class WAFterpreter(Cmd):
            option_list = available_options
            
        elif optname not in option_list:
-           print('{}: no such plugin option'.format(optname))
+           print('no such plugin option "{}"'.format(optname))
            return
            
        else:
