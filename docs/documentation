@@ -72,14 +72,12 @@ Wafterpreter overrides the following Cmd methods:
 Built-in Wafterpreter commands
 ------------------------------
 
-Internal commands are added in the Wafterpreter's class definition.
-Wafterpreter scans its class definition and exposes methods starting
-with "do_" to the use as executable commands. 
-
-A plugin may also specify commands; when load_module() loads a plugin
-via the do_use() command, it scans the functions listed in its
-"commands" dictionary and dynamically adds them to the Wafterpreter
-instance with a "do_" prefix, rendering them executable by the user. 
+Internal commands take the form of callback methods defined in the
+Wafterpreter's class definition, or as callback functions defined in a
+plugin module.  When a command is entered at the command-line,
+Wafterpreter searches for a corresponding method or loaded plugin
+module function whose name begins with "do_" and ends with the command
+name.
 
 The following native commands are available in Wafterpreter:
 
