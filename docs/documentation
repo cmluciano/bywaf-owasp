@@ -176,14 +176,21 @@ options, and there are instances where a plugin may not offer any user
 commands.  
 
 For modules offering or requiring options, Wafterpreter expects them
-to define an option dictionary in a specific format: options
-dictionary must take the form {option_name: name, value,
-default_value, required, description }, where 'option_name' is a
-string containing the option's name, 'value' is a string containing
-the option's current value, 'default_value' is a string containing the
-option's default value, 'required' is a string of "Yes" or "No"
-describing whether or not this option must be set, and "description"
-is a one-line description of the option.  
+to define an options dictionary in a specific format: they must take
+the form:
+
+  options = {
+    option_name: (name, value, default_value, required, description) 
+  }
+  
+where:
+
+  - "option_name" is a string containing the option's name, 
+  - "value" is a string containing the option's current value,
+  - "default_value" is a string containing the option's default value,
+  - "required" is a string of "Yes" or "No" describing whether or not this
+    option must be set, and 
+  - "description" is a one-line description of the option.  
 
 A plugin module's functions will automatically be exposed as user
 commands if their names start with "do_".  These functions can be
