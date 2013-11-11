@@ -1,12 +1,12 @@
 # exampleplugin.py:  a model example plugin for Bywaf
 
-print "loaded example plugin"
+print('loaded example plugin')
 
 # required dictionary
 options = {
-  # <name>    <value>    <default value>   <required>  <description>
-  "SLEEP_SECONDS": ("", "10", "Yes", "Number of seconds to sleep"),
-  "FILENAME": ("", "", "No", "Name of the file to display")  
+   # <name>        <value>    <default value>   <required>  <description>
+  'SLEEP_SECONDS': ('',       '10',            'Yes',       'Number of seconds to sleep'),
+  'FILENAME':      ('',       '',              'No',        'Name of the file to display')  
   }
 
 
