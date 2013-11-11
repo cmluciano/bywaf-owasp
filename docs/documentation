@@ -39,8 +39,6 @@ adds some important additions, including:
 Wafterpreter employs a simple plugin system consisting of python
 modules containing commands exposed to the user (functions starting
 with "do_") and a dictionary of user-modifiable options ("options").
-When do_use() loads a plugin, it provides a link to its own instance
-by setting the loaded module's "app" property to "self". 
 
 A number of Wafterpreter methods have been exposed to plugins,
 allowing them to change the interpreter's behavior and access other
@@ -156,19 +154,42 @@ queries for jobs.
 Plugin requirements
 -------------------
 
-A plugin is a module loaded with the do_use() command.  At a minimum,
-it is expected to implement a dictionary of user options.
+A plugin is a module containing an optional dictionary of options and
+zero or more command functions (i.e. functions whose names start with
+"do_").  It it is loaded when the user types "use <plugin-name>", where
+<plugin-name> is the filename of a plugin's Python module.  
 
-This expected options dictionary must take the form {option_name: name,
-value, default_value, required, description }, where 'option_name' is
-a string containing the option's name, 'value' is a string containing
+The "use" command calls Wafterpreter's do_use() to load the plugin.  
+This method physically loads the module with load_module(), adds the
+module to its list of loaded plugins, and changes the prompt to
+reflect the newly selected plugin. Additionally, it provides the
+plugin with a link back to itself by assigning "self" to a new module
+property named "app". 
+
+
+What your plugin needs to define:
+---------------------------------
+
+As stated above, there is no requirement for a a plugin's module to
+define anything.  There are instances where a plugin does not take any
+options, and there are instances where a plugin may not offer any user
+commands.  
+
+For modules offering or requiring options, Wafterpreter expects them
+to define an option dictionary in a specific format: options
+dictionary must take the form {option_name: name, value,
+default_value, required, description }, where 'option_name' is a
+string containing the option's name, 'value' is a string containing
 the option's current value, 'default_value' is a string containing the
 option's default value, 'required' is a string of "Yes" or "No"
 describing whether or not this option must be set, and "description"
 is a one-line description of the option.  
 
-Functions that are exposed to the user as a command must have names
-starting with "do_".
+A plugin module's functions will automatically be exposed as user
+commands if their names start with "do_".  These functions can be
+complemented with help_ and complete_ functions, just as do_, help_
+and complete_ methods are defined in the Wafterpreter's class
+definition. 
 
 An example plugin definition appears in test.py.
 
