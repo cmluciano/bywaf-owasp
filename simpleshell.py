@@ -7,14 +7,14 @@ print "loaded simple shell"
 # required dictionary
 # read when creating new shells
 options = {
-  # <name>    <value>    <default value>   <required>  <description>
-  ('RHOST',      '',            '',         'yes',     'IP address of the remote host'),
-  ('PORT',       '',            '22/tcp',   'no',      'Port/protocol of the remote host'),
-  ('CWD',        '',            '',         'no',      'Current working directory to set on the remote host account'),
-  ('USERNAME',   '',            '',         'yes',     'User name of remote host account'),
-  ('PASSWORD',   '',            '',         'yes',     'User password of remote host account'),
-  ('TITLE',      '',            '',         'no',      'Title of the new shell'),
-  }
+    # <name>    <value>    <default value>   <required>  <description>
+    'RHOST':     ('',            '',         'yes',     'IP address of the remote host'),
+    'PORT':      ('',            '22/tcp',   'no',      'Port/protocol of the remote host'),
+    'CWD':       ('',            '',         'no',      'Current working directory to set on the remote host account'),
+    'USERNAME':  ('',            '',         'yes',     'User name of remote host account'),
+    'PASSWORD':  ('',            '',         'yes',     'User password of remote host account'),
+    'TITLE':     ('',            '',         'no',      'Title of the new shell'),
+    }
 
   
 # abstract shell-like class
@@ -49,7 +49,8 @@ class SimpleSSHShell(SimpleShell):
         self.username = username
         self.pw = password
         
-        # fixme: implement the rest
+        # fixme: implement the rest:  open an SSH connection, etc. 
+        # Maybe use pexpect module?  Fabric?
         
 
 # FIXME:  implement this        
