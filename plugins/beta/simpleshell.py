@@ -139,8 +139,3 @@ def do_bw(line):
     # what I really want is to have working tab completion for this.
     # note, this won't happen since delegate gets called regardless...fix this
     app.cmdqueue.append(line[3:]) # skip past the 'bw '
-
-    
-# FIXME:  Implement this    
-def complete_shell(self,text,line,begin_idx,end_idx):
-    pass
