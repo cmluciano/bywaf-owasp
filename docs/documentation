@@ -161,10 +161,10 @@ zero or more command functions (i.e. functions whose names start with
 
 The "use" command calls Wafterpreter's do_use() to load the plugin.  
 This method physically loads the module with load_module(), adds the
-module to its list of loaded plugins, and changes the prompt to
-reflect the newly selected plugin. Additionally, it provides the
-plugin with a link back to itself by assigning "self" to a new module
-property named "app". 
+module to Wafterpreter's list of loaded plugins, and changes the
+prompt to reflect the newly selected plugin. Additionally, it provides
+the plugin with a link back to the Wafterpreter instance assigning
+"self" to a new module property named "app". 
 
 
 What your plugin needs to define:
