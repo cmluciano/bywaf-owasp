@@ -1,4 +1,4 @@
-# exampleplugin.py: a model plugin implementing an array of simple shells for
+# simpleshell.py: a model plugin implementing an array of simple shells for
 # local and remote POSIX systems.  Users can open, close and select among local 
 # and remote SSH shells.
 
