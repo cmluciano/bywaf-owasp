@@ -41,7 +41,12 @@ class SimpleShell:
 class SimpleSSHShell(SimpleShell):
 
     def __init__(self, title, current_working_directory, remote_host, remote_port, username, password):
-        super(SimpleSSHShell).__init__(current_working_directory)
+        #initialize parent(SimpleShell) in portable manner
+        try:
+            super().__init__(title,current_working_directory)
+        except TypeError:
+            print('python 3 convention failed, resorting to python 2.x')
+            SimpleShell.__init__(self,title,current_working_directory)
         
         self.rhost = remote_host
         self.rport = remote_port.split('/')[0]
