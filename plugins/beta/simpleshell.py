@@ -42,7 +42,12 @@ class SimpleShell:
 class SimpleSSHShell(SimpleShell):
 
     def __init__(self, title, current_working_directory, remote_host, remote_port, username, password):
-        super(SimpleSSHShell).__init__(current_working_directory)
+        #initialize parent(SimpleShell) in portable manner
+        try:
+            super().__init__(title,current_working_directory)
+        except TypeError:
+            print('python 3 convention failed, resorting to python 2.x')
+            SimpleShell.__init__(self,title,current_working_directory)
         
         self.rhost = remote_host
         self.rport = remote_port.split('/')[0]
@@ -101,25 +106,82 @@ def do_cd(line):
     except IOError: # target dir not found
         print("target directory not found")
 
+def do_cwd(line):
+    if current_shell_session:
+        print(current_shell_session.getcwd())
         
 # FIXME:  Implement this
 # note, this is a multi-level command
 def do_shell(line):
+    global shell_sessions
+    global current_shell_session
+    from os import getcwd
+    from socket import gethostname
+    from getpass import getuser
+    from fabric.api import run,sudo
+    
     """open, select and close multiple local and remote shells"""
-    
-    # subcommands to expose to the user:
-        
-    # new       - creates a new shell, assigning it a numeric title if one is not provided
-    #   local   
-    #   remote  - takes optional remote host, remote port, username, 
-    #             password (also settable through options{})
-    # select    - takes shell title or number to switch focus to
-    #              calls app.set_delegate_input_handler(shell_input_handler)
-    #              calls set_prompt()
-    # close     - takes shell title or number to switch focus to
-    
 
-# FIXME:  Implement this
+    # subcommands to expose to the user:
+    
+    params = line.split()
+    
+    if 'new' in params:
+        #create a new shell
+        ssh_params = ['RHOST','PORT','USERNAME','PASSWORD']        
+        for i in range(len(ssh_params)):
+            try: 
+                #try to get parameters from shell, we skip the -new- shell argument
+                ssh_params[i] = params[i+1]      
+            #the parameter was not defined, fill in from options
+            except IndexError:
+                #if no specific parameters exist in options, resort to default parameters
+                ssh_params[i] = options[ssh_params[i]][1] if options[ssh_params[i]][0]=='' else options[ssh_params[i]][0]
+        
+        current_shell_session = SimpleSSHShell("{}@{} {}".format(getuser(),gethostname(),len(shell_sessions)),getcwd(),remote_host=ssh_params[0],remote_port=ssh_params[1],username=ssh_params[2],password=ssh_params[3])
+        shell_sessions.append(current_shell_session)
+        app.set_prompt(current_shell_session.title)
+            
+    elif 'local' in params:
+        pass 
+        #spawn local
+    elif 'remote' in params:
+        pass
+        #exec remote cmd
+    elif 'select' in params:
+        if not params:
+            print('no shells spawned')
+        else:
+            print ('Avalible Sessions:')
+            print(' | '.join([session.title for session in shell_sessions]))
+        #TODO if there is a numeric parameter in input, 
+        #pick the shell with the matching shell id
+        #select
+    elif 'close' in params:
+        pass
+        #close
+    else:
+        print('select new | local | remote | select | close')
+
+        
+        
+        
+        
+        
+        
+        
+           
+        # subcommands to expose to the user:
+            
+        # new       - creates a new shell, assigning it a numeric title if one is not provided
+        #   local   
+        #   remote  - takes optional remote host, remote port, username, 
+        #             password (also settable through options{})
+        # select    - takes shell title or number to switch focus to
+        #              calls app.set_delegate_input_handler(shell_input_handler)
+        #              calls set_prompt()
+        # close     - takes shell title or number to switch focus to
+        
 def complete_shell(self,text,line,begin_idx,end_idx):
     pass
 
