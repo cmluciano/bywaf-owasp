@@ -1,0 +1,129 @@
+Bywaf user documentaiton
+========================
+
+Bywaf is a command-line tool for streamlining web application firewall
+auditing. It consists of a command-line interpreter and a set of
+plugins.  For the user, Bywaf supports tab-completion for most
+commands, and an easy process for installing and using plugins. Bywaf
+has been designed with forward compatibility and is compatible with
+both Python 2.x and Python 3.x.
+
+By convention, this document uses <tab> and <enter> to denote Tab
+Enter keypresses, respectively.
+
+
+Table of contents
+----------------
+
+1. Getting started
+
+
+
+Getting started
+---------------
+
+To start Bywaf, type "python bywaf.py".  Bywaf's shell will open with
+a greeting:
+
+  $ python bywaf.py
+  Welcome to Bywaf
+  Bywaf/>
+  
+On its own, Bywaf does not do very much; the bulk of Bywaf's
+functionality lies in its library of plugins.  To load a plugin, issue
+the "use" command.  It tab-completes filenames, so if you hit <tab>,
+you will see something like this:
+
+  Bywaf/>use p<tab><tab>
+  .git               INSTALL.txt        TODO            README.txt        
+  copyright.txt      plugins            bywaf.py        docs
+
+Type "p" and strike <tab> again, and Bywaf will auto-complete "p" to
+"plugins/".  As you continue typing and pressing <tab>, Bywaf will
+either auto-complete the word to the matching filename, or present you
+with a list of partially matching files.  Once you have your plugin's
+name entered, press <enter> to issue the command.  Here, we have
+loaded the Example Plugin:
+
+  Bywaf/>use plugins/beta/exampleplugin.py
+  loaded example plugin
+  Bywaf/exampleplugin>
+  
+As the plugin loads, it displays "loaded example plugin" as a
+greeting.  
+
+
+# FIXME: finish
+
+Running scripts
+---------------
+
+Scripts are lists of commands, one per line.
+3 ways of doing this:  by piping redirecting user input from standard
+input:
+
+  cat script.txt | python bywaf.py
+  
+Or on the command-line:
+
+  python bywaf.py --input=script.txt
+  
+With the --script flag, Bywaf will ... <-- remove script flag?
+
+  python bywaf.py --script=script.txt
+  
+Or   
+
+
+# FIXME: finish
+
+
+  
+
+2. Common commands
+
+A list of common commands appears below, along with a descriptions of
+each command's tab-completion behavior: 
+
+  - use:  select a module.  Tab-completes filenames.
+  
+  - kill: ends a running command.  Tab-completes to running
+    commands in the job queue.
+    
+  - d: removes a completed command from the job queue.
+    Tab-completes to completed commands in the job queue.
+    
+  - result: displays the return result of a completed command.
+    Tab-completes to completed commands in the job queue.
+    
+  - script: executes a script given a filename.  A script is a
+    list of commands, one per line.  Among other things, this is useful
+    for loading a configuration.  Tab-completes filenames.
+    
+  - gshow: shows global options.  Tab-completes global options.
+  
+  - set: when a plugin is loaded, set shows its options and
+    functions available to the user.  Tab-completes option names.
+    
+  - show: shows the currently-selected plugin's options and
+    commands available to the user.  Tab-completes option names.
+    
+  - shell: executes a command in a system shell.  Does not
+    tab-complete.
+    
+  - history: shows, clears, loads and saves the command history.
+    This is a multi-level command which first tab-completes "show",
+    "clear", "load" and "save", and for "load" and "save"
+    tab-completes filenames.
+
+
+
+
+Order of option precedence
+--------------------------
+
+Bywaf follows this order of precendence for options:
+
+  1.  Command line 
+  2.  Global and plugin options
+  3.  parameters to Bywaf commands
