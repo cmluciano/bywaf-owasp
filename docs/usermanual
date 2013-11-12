@@ -50,10 +50,73 @@ loaded the Example Plugin:
   Bywaf/exampleplugin>
   
 As the plugin loads, it displays "loaded example plugin" as a
-greeting.  
+greeting.  From here, we can explore the commands it provides:
+
+  Bywaf/>show
+  
+  Option      Value    Default    Required  Description
+  ----------- ------   ---------- --------  -----------
+
+  FILENAME                        No         Name of the file to display
+  SLEEP_SECONDS         10        Yes        Number of seconds to sleep
+  
+  
+  Command              Description
+  -------------------- --------------------
+  cat                  display contents of a file
+  choice               Select a subcommand
+  sleepfunction        sleep for a few second
 
 
-# FIXME: finish
+Pressing <tab> while entering a parameter to the "show" command causes
+it to complete for option names.
+
+In the screen capture above, the first table shows the available
+options for this module.  In particular, for each option, the table
+lists:
+
+  - Option: the name of the option;
+  - Value: the current value of the option;
+  - Default: the default value of the option;
+  - Required: whether or not this plugin requires this option for its
+    commands; and
+  - Description: a description of the option
+
+Below the options table lies the commands table.  This table lists:
+
+  - Command: the name of the command; and
+  - Description: a description of the command 
+
+To set an option, use the option "set" command:
+
+  Bywaf/exampleplugin>set FILENAME /etc/passwd
+  FILENAME => /etc/passwd
+  
+To see the result, run the "show" command with the name of the option
+you wish to see:
+
+  Bywaf/exampleplugin>show FILENAME
+  FILENAME: /etc/passwd
+
+To issue a command, enter the command's name:
+
+  Bywaf/exampleplugin>cat
+  
+In this example, the "cat" command will output the contents of the
+file in FILENAME.  If FILENAME is already set, and we want to run
+"cat" on a different file, specify it a parameter ("cat" tab-completes
+filenames):
+
+  Bywaf/exampleplugin>cat /etc/password
+
+
+Global options
+--------------
+Global options are options available to all plugins.
+
+
+Backgrounding tasks
+-------------------
 
 Running scripts
 ---------------
