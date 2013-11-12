@@ -1,10 +1,11 @@
-Developer documentation
-=======================
+Bywaf Developer documentation
+=============================
 
-Bywaf is a tool for streamlining web application firewall auditing.
-It consists of a command-line interpreter and a set of plugins.
-This document describes the Bywaf application's architecture, the API
-it provides for plugins and the requirements for writing plugins.
+Bywaf is a command-line tool for streamlining web application firewall
+auditing. It consists of a command-line interpreter and a set of
+plugins. This document describes the Bywaf application's architecture,
+the API it provides for plugins and the requirements for writing
+plugins.
 
 
 Table of contents
@@ -79,27 +80,32 @@ name.
 
 The following native commands are available in Wafterpreter:
 
-  - do_use(): select a module.  Tab-completes filenames.
-  - do_kill(): kills a running command.  Tab-completes to running
+  - do_use(): select a module.
+  
+  - do_kill(): kills a running command. 
     commands in the job queue.
+    
   - do_d(): removes a completed command from the job queue.
-    Tab-completes to completed commands in the job queue.
+
   - do_result(): displays the return result of a completed command.
-    Tab-completes to completed commands in the job queue.
+
   - do_script(): executes a script given a filename.  A script is a
     list of commands, one per line.  Among other things, this is useful
-    for loading a configuration.  Tab-completes filenames.
-  - do_gshow(): shows global options.  Tab-completes global options.
+    for loading a configuration.  
+    
+  - do_gshow(): shows global options.  
+  
   - do_set(): when a plugin is loaded, do_set() shows its options and
-    functions available to the user.  Tab-completes option names.
+    functions available to the user.
+    
   - do_show(): shows the currently-selected plugin's options and
-    commands available to the user.  Tab-completes option names.
-  - do_shell(): executes a command in a system shell.  Does not
-    tab-complete.
+    commands available to the user. 
+    
+  - do_shell(): executes a command in a system shell.  
+    
   - do_history(): shows, clears, loads and saves the command history.
     This is a multi-level command which first tab-completes "show",
-    "clear", "load" and "save", and for "load" and "save"
-    tab-completes filenames.
+    "clear", "load" and "save", and for "load" and "save".
     
   - complete_ functions: Commands may have a corresponding
     tab-completion function.  This gets called after a user types the
