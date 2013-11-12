@@ -655,7 +655,8 @@ class WAFterpreter(Cmd):
        """Load, save, display and clear command history"""
        
        cmd = params.split()
-       
+
+       # default to show history if no sub-actions specified       
        if not cmd:
            cmd.append('show')
       
