@@ -36,6 +36,7 @@ class SimpleShell:
     
     def receive(self):
         pass
+    
 
 # FIXME: implement this    
 class SimpleSSHShell(SimpleShell):
