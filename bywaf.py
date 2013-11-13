@@ -136,12 +136,12 @@ class WAFterpreter(Cmd):
         if not cmd:
             return self.emptyline()
         
-        # quit on EOF - get this working
+        # quit on EOF
         elif cmd in ['EOF', 'quit', 'exit']:
             self.lastcmd = ''
             return 1
 
-        # else, process thie command
+        # else, process the command
         else:
             
             try:
@@ -598,13 +598,15 @@ class WAFterpreter(Cmd):
 
        optname = args.strip()
        available_options = self.current_plugin.options.keys()
-       option_list = []
-
-       # default to show all option names.  If a user specifies a specific option, then only show that one
+       
+       # default to show all option names.  If a user specifies a specific option, then only show that one       
+       option_list = available_options
+       
        if not optname:
            option_list = available_options
            
-       elif optname not in option_list:
+       if optname not in available_options:
+           print('plugin options: {}'.format(available_options))
            print('no such plugin option "{}"'.format(optname))
            return
            
@@ -641,10 +643,39 @@ class WAFterpreter(Cmd):
            command_docstring = getattr(self.current_plugin, command_name).__doc__
            print(format_string.format(command_name[3:], command_docstring))
            
+           
    # completion function for the do_set command: return available option names
    def complete_show(self,text,line,begin_idx,end_idx):
-       option_names = [opt+' ' for opt in self.current_plugin.options.keys() if opt.startswith(text)]
-       return option_names           
+       
+       print('DEBUG: complete_show() called')
+       
+       words = line.split()       
+       
+       first_level = ['commands', 'options', 'all']
+
+       # find out if this is first- or second-level completion:
+
+       # FIXME:  Make this generic and put it into an API helper function
+       # first level completion: we see either one word, OR two words and the second is only partially completed.  Complete the subcommand.
+       if len(words)==1 or (len(words)==2 and words[1] not in first_level):
+           option_names = [opt+' ' for opt in first_level if opt.startswith(text)]
+           return option_names
+           
+       # second level completion: we see two words, the second fully completed. Complete the option or command name.
+       else:
+           
+           if words[1]=='commands': 
+               print('words[2]=="{}"'.format(words[2]))
+               option_names = [opt + ' ' for opt in self.current_plugin.options.keys() if words[2].startswith(opt)]
+               print(option_names)
+               return option_names
+               
+           elif words[1]=='options':
+               option_names = [opt + ' ' for opt in self.current_plugin.commands if words[2].startswith(opt)]
+               print(option_names)
+               return option_names               
+       
+
 
    def do_shell(self, line):
        """Execute shell commands"""
@@ -690,7 +721,8 @@ class WAFterpreter(Cmd):
        words = line.split()
 
        # find out if this is first- or second-level completion:
-       
+
+       # FIXME:  Make this generic and put it into an API helper function
        # first level completion: we see either one word, OR two words and the second is only partially completed.  Complete the subcommand.
        if len(words)==1 or (len(words)==2 and words[1] not in ['load', 'save', 'show', 'clear']):
            option_names = [opt+' ' for opt in ['load', 'save', 'show', 'clear'] if opt.startswith(text)]
