@@ -20,6 +20,15 @@ MAX_CONCURRENT_JOBS = 10
 # history file name
 HISTORY_FILENAME = "bywaf-history.txt"
 
+#since this function happens in a new process
+#it can't a method in a class, a class is not picklable by python.
+#also the reason why we create a new instance of the class to do the job.
+def job_delegate(cmd,args):
+    delegate = WAFterpreter()
+    newfunc = getattr(delegate, 'do_' + cmd)
+    #value is stored in job.results
+    return newfunc(args)
+    
 # Interactive shell class
 class WAFterpreter(Cmd):
     
@@ -162,7 +171,7 @@ class WAFterpreter(Cmd):
                 print('backgrounding job {}'.format(self.job_counter))
                 
                 # background the job
-                job = self.job_executor.submit(func, arg)
+                job = self.job_executor.submit(job_delegate, cmd, arg)
                 
                 job.job_id = self.job_counter
                 job.name = self.current_plugin_name + '/' + cmd
