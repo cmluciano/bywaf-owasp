@@ -50,7 +50,7 @@ loaded the Example Plugin:
   Bywaf/exampleplugin>
   
 As the plugin loads, it displays "loaded example plugin" as a
-greeting.  From here, we can explore the commands it provides:
+greeting.  From here, we can explore the options commands it provides.
 
   Bywaf/>show
   
@@ -70,6 +70,13 @@ greeting.  From here, we can explore the commands it provides:
 
 Pressing <tab> while entering a parameter to the "show" command causes
 it to complete for option names.
+
+By default, or with "show all", the "show" command displays a plugin's
+options and commands.  To show just its options, type "show options".
+To show a particular option, type "show option" and either hit <tab>
+to get a list of available options, or type an option name explicitly.
+You can apply this same methodology to inspecting a plugin's command;
+issue the "show commands".
 
 In the screen capture above, the first table shows the available
 options for this module.  In particular, for each option, the table
