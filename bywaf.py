@@ -88,6 +88,7 @@ class WAFterpreter(Cmd):
            
            for j in self.finished_jobs:
                print("[{}]  Done  {}".format(str(j.job_id), j.command_line))
+               
            # clear the finished jobs list
            self.finished_jobs = []
            
@@ -250,16 +251,29 @@ class WAFterpreter(Cmd):
        self.delegate_input_handler = None
        
        
-       
    # set an option's value.  Called by do_set()            
    def set_option(self, name, value):
 
        # retrieve the option (it's a tuple)       
        _value, _defaultvalue, _required, _descr = self.current_plugin.options[name]
        
-       # construct a new option tuple and set the option to it       
-       self.current_plugin.options[name] = value, _defaultvalue, _required, _descr
-       
+       # defer first to the specific setter callback, if it exists
+       try:
+           setter_func = getattr(self.current_plugin, 'get_'+name)
+           setter_func(name, value)
+           
+       # specific option setter callback doesn't exist,  so do a straight assignment 
+       except AttributeError:
+           # construct a new option tuple and set the option to it
+           
+           try:
+               self.current_plugin.set_default(name, value)
+           except AttributeError:
+               
+               # default option setter doesn't exist; fall back to a direct assignment
+               self.current_plugin.options[name] = value, _defaultvalue, _required, _descr
+
+           
    # return a Futures object given its job ID as a string or int
    def get_job(self, _job_id):
 
