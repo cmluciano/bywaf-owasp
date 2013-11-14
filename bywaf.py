@@ -605,20 +605,27 @@ class WAFterpreter(Cmd):
        
    #sets plugin parameters, takes the format of 'set NAME_1=VALUE_1 NAME_2=VALUE_2 ...'
    def do_set(self, arg):
+       
        if not self.current_plugin:
            print('no plugin selected')
-       option_num = arg.count('=')
+           return
+       
+       opt_count = arg.count('=')
+       
+       if opt_count == 0:
+           print('no opotion set')
+           return
 
        #set varibles to store options
        name, value, next_name = ('', '', '', '')
 
        #is it only one 'set' ?
-       if len(arg.split())<2:
+       if opt_count == 1:
            name,value = arg.split('=')
            self.go_set(name, value)
 
 
-       else:
+       elif opt_count > 1:
            for i, param in enumerate(arg.split('=')):
                #we get a list of format: [name],[value name]...[value]
                param_length = len(param.split())
