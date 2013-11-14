@@ -598,20 +598,41 @@ class WAFterpreter(Cmd):
        option_names = [opt+' ' for opt in self.global_options.keys() if opt.startswith(text)]
        return option_names                  
            
-   def do_set(self, arg):
+   def set(self, name, value):
        """set a plugin's local variable.  This command takes the form 'set VARNAME VALUE'."""
-
-       # if no plugin is currently selected       
-       if not self.current_plugin:
-           print('no plugin currently selected')
-           return
-
-       (name,value)=string.split(arg, maxsplit=1)
-
        self.set_option(name, value)
-
        print('{} => {}'.format(name, value))
+       
+   #sets plugin parameters, takes the format of 'set NAME_1=VALUE_1 NAME_2=VALUE_2 ...'
+   def do_set(self, arg):
+       if not self.current_plugin:
+           print('no plugin selected')
+       option_num = arg.count('=')
 
+       #set varibles to store options
+       name, value, next_name = ('', '', '', '')
+
+       #is it only one 'set' ?
+       if len(arg.split())<2:
+           name,value = arg.split('=')
+           self.go_set(name, value)
+
+
+       else:
+           for i, param in enumerate(arg.split('=')):
+               #we get a list of format: [name],[value name]...[value]
+               param_length = len(param.split())
+
+               #if it's the beginning, we will only fetch one variable- 'name'
+               if param_length > 1:
+                   value, next_name = param.split()
+                   self.set(name, value)
+               elif i==0:
+                   name = param
+               elif param_length == 1:
+                   value = param
+                   self.set(next_name, value)
+                   
    # completion function for the do_set command: return available option names
    def complete_set(self,text,line,begin_idx,end_idx):
        option_names = [opt+' ' for opt in self.current_plugin.options.keys() if opt.startswith(text)]
