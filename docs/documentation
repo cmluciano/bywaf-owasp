@@ -43,7 +43,16 @@ with "do_") and a dictionary of user-modifiable options ("options").
 
 A number of Wafterpreter methods have been exposed to plugins,
 allowing them to change the interpreter's behavior and access other
-modules' options.  
+modules' options.
+
+For notifications of changes in plugin options, Bywaf supports
+callback functions.  The Wafterpreter will call a function for a given
+plugin option if it begins with "set_"; for example, for an option
+like "FILENAME", the Wafterpreter will search for and call a
+set_FILENAME(), if it exists.  The Wafterpreter will also search for
+and call "set_default()", if it exists, for any option that does not
+have a specific setter function.  Failing these attempts, Wafterpreter
+will perform a direct assignment on the plugin's option. 
 
 
 Overriden Cmd methods
@@ -104,8 +113,6 @@ The following native commands are available in Wafterpreter:
   - do_shell(): executes a command in a system shell.  
     
   - do_history(): shows, clears, loads and saves the command history.
-    This is a multi-level command which first tab-completes "show",
-    "clear", "load" and "save", and for "load" and "save".
     
   - complete_ functions: Commands may have a corresponding
     tab-completion function.  This gets called after a user types the
