@@ -123,6 +123,7 @@ def do_shell(line):
     """open, select and close multiple local and remote shells"""
 
     # subcommands to expose to the user:
+    #TODO: add the actual ssh connection functionality
     
     params = line.split()
     
@@ -141,21 +142,30 @@ def do_shell(line):
         current_shell_session = SimpleSSHShell("{}@{} {}".format(getuser(),gethostname(),len(shell_sessions)),getcwd(),remote_host=ssh_params[0],remote_port=ssh_params[1],username=ssh_params[2],password=ssh_params[3])
         shell_sessions.append(current_shell_session)
         app.set_prompt(current_shell_session.title)
-            
+    #new       
     elif 'local' in params:
         pass 
-        #spawn local
+        #execute a local commnad
     elif 'remote' in params:
         pass
-        #exec remote cmd
+        #execute a remote command
     elif 'select' in params:
-        if not params:
+        if not shell_sessions:
             print('no shells spawned')
-        else:
-            print ('Avalible Sessions:')
+        #see if we chose a shell to select
+        elif len(params)<2:
+            print ('Available Sessions:')
             print(' | '.join([session.title for session in shell_sessions]))
-        #TODO if there is a numeric parameter in input, 
-        #pick the shell with the matching shell id
+        else:
+            #only if the parameter is a digit we can go on and cast it to an int
+            if params[1].isdigit():
+                if int(params[1]) < len(shell_sessions):
+                    current_shell_session = shell_sessions[int(params[1])]
+                    app.set_prompt(current_shell_session.title)
+                else:
+                    print('there are only {} spawned shells'.format(len(shell_sessions)))
+            else:
+                print('the second argument should be a number')
         #select
     elif 'close' in params:
         pass
