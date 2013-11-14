@@ -20,9 +20,14 @@ MAX_CONCURRENT_JOBS = 10
 # history file name
 HISTORY_FILENAME = "bywaf-history.txt"
 
-#since this function happens in a new process
-#it can't a method in a class, a class is not picklable by python.
-#also the reason why we create a new instance of the class to do the job.
+# Roey Katz: Job delegate utility function: takes a command method or function, 
+# calls it and returns its results.  A method is not pickleable, and
+# hence is not suitable for calling ProcessPoolExecutor.submit() in
+# Wafterpreter.oncecmd().  This function is a module-level function that IS pickleable.
+
+# Adar Grof: since this function happens in a new process
+# it can't a method in a class, a class is not picklable by python.
+# also the reason why we create a new instance of the class to do the job.
 def job_delegate(cmd,args):
     delegate = WAFterpreter()
     newfunc = getattr(delegate, 'do_' + cmd)
@@ -400,6 +405,7 @@ class WAFterpreter(Cmd):
                setattr(self, 'complete_' + command_name, completefunc)
            except:
                pass
+
            
    # alias use()'s completion function to the filename completer
    complete_use = filename_completer 
@@ -605,85 +611,137 @@ class WAFterpreter(Cmd):
            print('No plugin currently selected')
            return
 
-       optname = args.strip()
-       available_options = self.current_plugin.options.keys()
-       
-       # default to show all option names.  If a user specifies a specific option, then only show that one       
-       option_list = available_options
-       
-       if not optname:
-           option_list = available_options
-           
-       if optname not in available_options:
-           print('plugin options: {}'.format(available_options))
-           print('no such plugin option "{}"'.format(optname))
-           return
-           
-       else:
-           option_list = [optname]
-       
+       SHOW_COMMANDS = False
+       SHOW_OPTIONS = False
+       params = args.split()
+       output_string = []
 
-       # construct the format string:  left-aligned, space-padded, minimum.maximum
-       format_string = '{:<15.15} {:<15.15} {:<15.15} {:<15.15} {:<15.30}'
        
-       # print the header
-       print('\n\n')
-       print(format_string.format('Option', 'Value', 'Default Value', 'Required', 'Description'))
-       print(format_string.format(*["-"*15] * 5))
+       # show all by default
+       if params == []:
+           params.append('all')
 
-       # loop through the plugin's available options and display them
-       for name in sorted(option_list): 
-           value, defaultvalue, required, description = self.current_plugin.options[name]
-           print(format_string.format(name, value, defaultvalue, required, description))
+       if params[0] in ('options', 'all'):
            
-           
-       # ------ show this plugin's available commands -----------
-       
-       # construct the format string:  function name, description
-       format_string = '{:<20.20} {}'
-       
-       # print the header
-       print('\n\n')
-       print(format_string.format('Command', 'Description'))
-       print(format_string.format(*["-"*20] * 2))
+               # this code does not work!  why?  Why does the exception get swallowed up but not responded to?
+               
+#               try:
+#                   options_list = params[1:]
+#               except IndexError:
+#                   options_list = self.current_plugin.options.keys()
 
-       # loop through the plugin's available options and display them
-       for command_name in sorted(self.current_plugin.commands):
-           command_docstring = getattr(self.current_plugin, command_name).__doc__
-           print(format_string.format(command_name[3:], command_docstring))
+               if len(params)<2:
+                   options_list = self.current_plugin.options.keys()
+               else:
+                   options_list = params[1:]
+
+               # construct the format string:  left-aligned, space-padded, minimum.maximum
+               # name, value, defaultvalue, required, description
+               format_string = '{:<15.15} {:<15.15} {:<15.15} {:<15.15} {:<15.30}'
+               
+               # construct header string
+               output_string = ['\n\n']
+               output_string.append(format_string.format('Option', 'Value', 'Default Value', 'Required', 'Description'))
+               output_string.append(format_string.format(*['-'*15] * 5))
+
+               # construct table of values
+               try:
+                   for name in options_list:
+                       output_string.append(format_string.format(name, *self.current_plugin.options[name]))
+               except KeyError:
+                   print("Error, no such option")
+                   return
+
+       if params[0] in ('commands','all'):
            
-           
+               # show all options if no option name was given
+#               try:
+#                   commands_list = params[1:]
+#               except IndexError:
+#                   commands_list = self.current_plugin.commands
+
+               _command_list = self.current_plugin.commands
+               if len(params)<2:
+                   commands_list = _command_list
+               else:  # note: the if clause closes this comprehension to insecure lookups
+                   commands_list = ['do_' + c for c in params[1:]]# if 'do_'+c in _command_list]
+               
+               # get the option names from the rest of the parameters
+                   
+               # construct the format string:  left-aligned, space-padded, minimum.maximum
+               # name, value, defaultvalue, required, description                   
+               format_string = '{:<20.20} {}'
+               output_string = ['\n\n']
+
+               # construct header 
+               output_string = ['\n\n']
+               output_string.append(format_string.format('Command', 'Description'))
+               output_string.append(format_string.format(*['-'*20] * 2))
+
+               try:
+                   for c in commands_list:
+                       cmd = getattr(self.current_plugin, c)
+                       output_string.append(format_string.format(cmd.__name__[3:], cmd.__doc__))
+                   
+                       
+               except AttributeError:
+                   print("Error, no such command")
+                   return
+                   
+       # display
+       print('\n'.join(output_string))
+                   
+
+
+   # utility function for completing against a list of matches, 
+   # given a list of words that have been inputted, a matchlist to match the word against, 
+   # and the level of the command
+   def simplecompleter(self, words, matchlist, level):
+
+      # user has not yet strted entering their choice
+      if len(words)==level:
+           return matchlist
+       
+      # user has entered a partial word
+      else:
+           partial_word = words[level]
+           return [opt + ' ' for opt in matchlist if opt.startswith(partial_word)]
+
+       
    # completion function for the do_set command: return available option names
    def complete_show(self,text,line,begin_idx,end_idx):
        
-       print('DEBUG: complete_show() called')
+     words = line.split()       
        
-       words = line.split()       
-       
-       first_level = ['commands', 'options', 'all']
+     first_level = ['commands', 'options', 'all']
+     
+     # find out if this is first- or second-level completion:
+     # FIXME:  Make this generic and put it into an API helper function
+     # first level completion: we see either one word, OR two words and the second is only partially completed.  Complete the subcommand.
+     if len(words)==1 or (len(words)==2 and words[1] not in first_level):
+         option_names = [opt+' ' for opt in first_level if opt.startswith(text)]
+         return option_names
+     # second level completion: we see two words, the second fully completed. Complete the option or command name.
+     else:
+         # return a list of plugin commands
+         if words[1]=='commands':
+             # construct new list of command names without "do_"
+             cmds = [i[3:] for i in self.current_plugin.commands]
+             return self.simplecompleter(words, cmds, level=2)
 
-       # find out if this is first- or second-level completion:
-
-       # FIXME:  Make this generic and put it into an API helper function
-       # first level completion: we see either one word, OR two words and the second is only partially completed.  Complete the subcommand.
-       if len(words)==1 or (len(words)==2 and words[1] not in first_level):
-           option_names = [opt+' ' for opt in first_level if opt.startswith(text)]
-           return option_names
-           
-       # second level completion: we see two words, the second fully completed. Complete the option or command name.
-       else:
-           
-           if words[1]=='commands': 
-               print('words[2]=="{}"'.format(words[2]))
-               option_names = [opt + ' ' for opt in self.current_plugin.options.keys() if words[2].startswith(opt)]
-               print(option_names)
-               return option_names
+         # return a list of plugin options
+         elif words[1]=='options':
+             opts = self.current_plugin.options.keys()
+             return self.simplecompleter(words, opts, level=2)
                
-           elif words[1]=='options':
-               option_names = [opt + ' ' for opt in self.current_plugin.commands if words[2].startswith(opt)]
-               print(option_names)
-               return option_names               
-       
+
+    
+
+           
+
+
+
+
 
 
    def do_shell(self, line):
