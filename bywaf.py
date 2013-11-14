@@ -47,7 +47,6 @@ class WAFterpreter(Cmd):
       self.set_prompt('') # set the prompt
       self.delegate_input_handler = None # no delegated input by default
       
-
       # currently loaded plugins, loaded & selected with he "use" command.
       # is a dictionary of { "plugin_name" : loaded_module_object }
       self.plugins = {}  
@@ -533,7 +532,8 @@ class WAFterpreter(Cmd):
            
    # alias script()'s completion function to the filename completer
    complete_script = filename_completer
-   
+
+   # fix: change printing to new style (with appends to a list and printing only at the end)
    def do_jobs(self, args):
        """list the status of running and completed jobs"""
        
@@ -654,7 +654,7 @@ class WAFterpreter(Cmd):
                format_string = '{:<15.15} {:<15.15} {:<15.15} {:<15.15} {:<15.30}'
                
                # construct header string
-               output_string = ['\n\n']
+               output_string.append('\n\n')
                output_string.append(format_string.format('Option', 'Value', 'Default Value', 'Required', 'Description'))
                output_string.append(format_string.format(*['-'*15] * 5))
 
@@ -685,10 +685,9 @@ class WAFterpreter(Cmd):
                # construct the format string:  left-aligned, space-padded, minimum.maximum
                # name, value, defaultvalue, required, description                   
                format_string = '{:<20.20} {}'
-               output_string = ['\n\n']
 
                # construct header 
-               output_string = ['\n\n']
+               output_string.append('\n\n')
                output_string.append(format_string.format('Command', 'Description'))
                output_string.append(format_string.format(*['-'*20] * 2))
 
@@ -701,9 +700,13 @@ class WAFterpreter(Cmd):
                except AttributeError:
                    print("Error, no such command")
                    return
+               
+               output_string.append('\n')
+               
                    
        # display
        print('\n'.join(output_string))
+
                    
 
 
