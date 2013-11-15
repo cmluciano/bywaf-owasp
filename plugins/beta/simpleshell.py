@@ -191,10 +191,14 @@ def do_shell(line):
         #              calls app.set_delegate_input_handler(shell_input_handler)
         #              calls set_prompt()
         # close     - takes shell title or number to switch focus to
-        
-def complete_shell(self,text,line,begin_idx,end_idx):
-    pass
 
+def complete_shell(text,line,begin_idx,end_idx):
+    #commands to be completed in the second level of 'shell'
+    option_names = ['new', 'local', 'remote', 'select', 'close']
+    #find closest match/s
+    opts = [x for x in option_names if x.startswith(text)]
+    return opts
+        
 def do_back_to_bywaf(self):
     """cancel input delegation"""
     app.unset_delegate_input_handler()
