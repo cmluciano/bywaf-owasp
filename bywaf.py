@@ -388,7 +388,7 @@ class WAFterpreter(Cmd):
        self.plugins[new_module_name] = new_module
        
        
-       commands = [f for f in dir(new_module) if f.startswith('do_')]
+       commands = [f for f in dir(new_module) if f.startswith('do_') or f.startswidth('complete_') or f.startswidth('help_')]
        self.plugins[new_module_name].commands = commands
        
        # set current plugin
