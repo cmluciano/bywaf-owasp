@@ -22,6 +22,7 @@ class SimpleShell:
     
     # open a new shell-like object, with current_working_directory defaulting to None
     def __init__(self, title=None, current_working_directory=None):
+        self.title = title
         self.cwd = current_working_directory
         self.title = ''
     
