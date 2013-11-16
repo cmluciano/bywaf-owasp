@@ -850,22 +850,25 @@ class WAFterpreter(Cmd):
            # re-use the filename completer
            return self.filename_completer(text, line, begin_idx, end_idx, level=2)           
 
-#function to prevent exceptions to throw you out of the app 
+#prevents exceptions from bringing down the app
+#and offers options to handle the exception.
 def interpreter_loop():
     try:
         wafterpreter.cmdloop()
     except Exception, e:
-        print '\nerror encountered, continue[Any-Key] or show stack trace[S]?'
+        print '\nerror encountered, continue[Any-Key], show stack trace[SC] and continue, show stack trace and quit[S]'
         answer = raw_input()
-        if answer == 'S':
+        if answer == ('S' or 's'):
             raise(e)
+        elif answer == ('SC' or 'sc'):
+            import traceback
+            traceback.print_exc()
         else:
-            #we don't want to show the user the welcome message again.
-            wafterpreter.intro = ''
             #present the error briefly
             print('{}\n'.format(e))
-            interpreter_loop()
-
+    #we don't want to show the user the welcome message again.
+    wafterpreter.intro = ''
+    interpreter_loop()
 #---------------------------------------------------------------
 #
 # Main function
