@@ -563,8 +563,7 @@ class WAFterpreter(Cmd):
                status = 'Completed'
            elif j.running():
                status = 'Running'
-           elif j.paused():
-               status = 'Paused'  # not sure if this is reached
+               
            print(format_string.format( str(j.job_id), j.command_line, status ))
         
    def do_gset(self, args):
