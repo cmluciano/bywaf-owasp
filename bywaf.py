@@ -858,9 +858,9 @@ def interpreter_loop():
     except Exception, e:
         print '\nerror encountered, continue[Any-Key], show stack trace and continue[SC], show stack trace and quit[S]'
         answer = raw_input()
-        if answer == ('S' or 's'):
+        if answer == 'S' or answer == 's':
             raise(e)
-        elif answer == ('SC' or 'sc'):
+        elif answer == 'SC' or answer == 'sc':
             import traceback
             traceback.print_exc()
         else:
