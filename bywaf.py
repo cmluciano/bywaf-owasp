@@ -13,12 +13,18 @@ import string
 import concurrent.futures
 import imp # for loading other modules
 import os
+import signal
+import mmap
 
 # global constants
 MAX_CONCURRENT_JOBS = 10
 
 # history file name
 HISTORY_FILENAME = "bywaf-history.txt"
+
+#buffer to pass data between processes
+#PID is assumed to be at most 7 digits long
+proc_buffer = mmap.mmap(-1, 7, 'MAP_SHARED')
 
 # Roey Katz: Job delegate utility function: takes a command method or function, 
 # calls it and returns its results.  A method is not pickleable, and
@@ -29,6 +35,10 @@ HISTORY_FILENAME = "bywaf-history.txt"
 # it can't a method in a class, a class is not picklable by python.
 # also the reason why we create a new instance of the class to do the job.
 def job_delegate(cmd,args):
+    
+    proc_buffer.seek(0)
+    proc_buffer.write(str(os.getpid()))
+    
     delegate = WAFterpreter()
     newfunc = getattr(delegate, 'do_' + cmd)
     #value is stored in job.results
@@ -57,8 +67,10 @@ class WAFterpreter(Cmd):
       
       # jobs are spawned using this object's "submit()"
       self.job_executor = concurrent.futures.ProcessPoolExecutor(MAX_CONCURRENT_JOBS)      
-      # self.job_executor = concurrent.futures.ThreadPoolExecutor(MAX_CONCURRENT_JOBS)
-
+      
+      # used to hold child process's PID
+      self.pids = []
+      
       # running counter, increments with every job; used as Job ID
       self.job_counter = 0 
       
@@ -435,7 +447,11 @@ class WAFterpreter(Cmd):
 
        # loop over the specified jobs...
        for job_id in job_ids:
-         job = self.get_job( job_id )
+           try:
+               if not job.cancel():
+                   answer = raw_input('job could not be cancelled, do you want to kill it? [Y/N]')
+               if 'Y' or 'y' in answer:
+                   os.kill(self.pids[job_id], signal.SIGILL)
          
          # ...and try to end them
          try:
