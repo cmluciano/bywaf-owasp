@@ -563,8 +563,7 @@ class WAFterpreter(Cmd):
                status = 'Completed'
            elif j.running():
                status = 'Running'
-           elif j.paused():
-               status = 'Paused'  # not sure if this is reached
+               
            print(format_string.format( str(j.job_id), j.command_line, status ))
         
    def do_gset(self, args):
@@ -855,7 +854,7 @@ class WAFterpreter(Cmd):
 def interpreter_loop():
     try:
         wafterpreter.cmdloop()
-    except Exception, e:
+    except Exception as e:
         print '\nerror encountered, continue[Any-Key], show stack trace and continue[SC], show stack trace and quit[S]'
         answer = raw_input()
         if answer == 'S' or answer == 's':
