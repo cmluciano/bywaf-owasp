@@ -65,7 +65,7 @@ class WAFterpreter(Cmd):
       self.global_options = {} 
       
       
-      # jobs are spawned using this object's ")"
+      # jobs are spawned using this object's "submit()"
       self.job_executor = concurrent.futures.ProcessPoolExecutor(MAX_CONCURRENT_JOBS)      
       
       # used to hold child process's PID
