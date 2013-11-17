@@ -464,7 +464,7 @@ class WAFterpreter(Cmd):
            if not job.cancel():
                answer = raw_input('job could not be cancelled, do you want to kill it? [Y/N]')
            if 'Y' or 'y' in answer:
-               os.kill(self.pids[job_id], signal.SIGILL)
+               os.kill(self.pids[job_id], signal.SIG_DFL)
          
            # ...and try to end them
            try:
