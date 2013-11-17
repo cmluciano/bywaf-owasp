@@ -854,6 +854,7 @@ class WAFterpreter(Cmd):
 def interpreter_loop():
     try:
         wafterpreter.cmdloop()
+        sys.exit(0)
     except Exception as e:
         print '\nerror encountered, continue[Any-Key], show stack trace and continue[SC], show stack trace and quit[S]'
         answer = raw_input()
