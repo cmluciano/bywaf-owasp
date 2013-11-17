@@ -65,7 +65,7 @@ class WAFterpreter(Cmd):
       self.global_options = {} 
       
       
-      # jobs are spawned using this object's "submit()"
+      # jobs are spawned using this object's ")"
       self.job_executor = concurrent.futures.ProcessPoolExecutor(MAX_CONCURRENT_JOBS)      
       
       # used to hold child process's PID
@@ -458,17 +458,18 @@ class WAFterpreter(Cmd):
 
        # loop over the specified jobs...
        for job_id in job_ids:
-           try:
-               if not job.cancel():
-                   answer = raw_input('job could not be cancelled, do you want to kill it? [Y/N]')
-               if 'Y' or 'y' in answer:
-                   os.kill(self.pids[job_id], signal.SIGILL)
+           job = self.get_job( job_id )
+           
+           if not job.cancel():
+               answer = raw_input('job could not be cancelled, do you want to kill it? [Y/N]')
+           if 'Y' or 'y' in answer:
+               os.kill(self.pids[job_id], signal.SIGILL)
          
-         # ...and try to end them
-         try:
-             job.cancel()
-         except:
-             print('Job ID {} not found'.format(job_id))
+           # ...and try to end them
+           try:
+               job.cancel()
+           except:
+               print('Job ID {} not found'.format(job_id))
 
              
    def complete_kill(self,text,line,begin_idx,end_idx):
