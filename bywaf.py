@@ -165,6 +165,7 @@ class WAFterpreter(Cmd):
         # quit on EOF
         elif cmd in ['EOF', 'quit', 'exit']:
             self.lastcmd = ''
+            proc_buffer.close()
             return 1
 
         # else, process the command
@@ -882,6 +883,7 @@ class WAFterpreter(Cmd):
 def interpreter_loop():
     try:
         wafterpreter.cmdloop()
+        sys.exit(0)
     except Exception as e:
         print '\nerror encountered, continue[Any-Key], show stack trace and continue[SC], show stack trace and quit[S]'
         answer = raw_input()
