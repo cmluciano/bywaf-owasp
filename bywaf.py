@@ -199,6 +199,17 @@ class WAFterpreter(Cmd):
                 self.jobs.append(job)
                 self.job_counter += 1                
                 
+                # wait for the process to write to mmap
+                while proc_buffer.size() <= 0:
+                    continue
+
+                # append int to pids, remove null bytes so we can convert it to an int
+                proc_buffer.seek(0)
+                self.pids.append(int(proc_buffer.readline().strip('\x00')))
+
+                # clear the file
+                proc_buffer.flush()
+                
                 ret = 0 # 0 keeps WAFterpreter going, 1 quits it
 
             # else, just run the job (returning 1 causes Bywaf to exit)
