@@ -13,12 +13,18 @@ import string
 import concurrent.futures
 import imp # for loading other modules
 import os
+import signal
+import mmap
 
 # global constants
 MAX_CONCURRENT_JOBS = 10
 
 # history file name
 HISTORY_FILENAME = "bywaf-history.txt"
+
+#buffer to pass data between processes
+#PID is assumed to be at most 7 digits long
+proc_buffer = mmap.mmap(-1, 7, 'MAP_SHARED')
 
 # Roey Katz: Job delegate utility function: takes a command method or function, 
 # calls it and returns its results.  A method is not pickleable, and
@@ -28,8 +34,18 @@ HISTORY_FILENAME = "bywaf-history.txt"
 # Adar Grof: since this function happens in a new process
 # it can't a method in a class, a class is not picklable by python.
 # also the reason why we create a new instance of the class to do the job.
-def job_delegate(cmd,args):
-    delegate = WAFterpreter()
+def job_delegate(cmd,args, plugins, options):
+    
+    proc_buffer.seek(0)
+    proc_buffer.write(str(os.getpid()))
+    
+
+    delegate = WAFterpreter()    
+    #load each plugin from the list
+    if options:
+        delegate._load_module([plugin for plugin in plugins.values()])
+        delegate.current_plugin.options = options
+    
     newfunc = getattr(delegate, 'do_' + cmd)
     #value is stored in job.results
     return newfunc(args)
@@ -51,14 +67,18 @@ class WAFterpreter(Cmd):
       # is a dictionary of { "plugin_name" : loaded_module_object }
       self.plugins = {}  
       
+      # dictionary of {plugin name : plugin path} 
+      self.plugin_paths = {}
       # dictionary of global variable names and values
       self.global_options = {} 
       
       
       # jobs are spawned using this object's "submit()"
       self.job_executor = concurrent.futures.ProcessPoolExecutor(MAX_CONCURRENT_JOBS)      
-      # self.job_executor = concurrent.futures.ThreadPoolExecutor(MAX_CONCURRENT_JOBS)
-
+      
+      # used to hold child process's PID
+      self.pids = []
+      
       # running counter, increments with every job; used as Job ID
       self.job_counter = 0 
       
@@ -154,6 +174,7 @@ class WAFterpreter(Cmd):
         elif cmd in ['EOF', 'quit', 'exit']:
             proc_buffer.close()
             self.lastcmd = ''
+            proc_buffer.close()
             return 1
 
         # else, process the command
@@ -177,7 +198,8 @@ class WAFterpreter(Cmd):
                 print('backgrounding job {}'.format(self.job_counter))
                 
                 # background the job
-                job = self.job_executor.submit(job_delegate, cmd, arg)
+                job = self.job_executor.submit(job_delegate, cmd, arg, self.plugin_paths, self.current_plugin.options if self.current_plugin else None)
+
                 
                 job.job_id = self.job_counter
                 job.name = self.current_plugin_name + '/' + cmd
@@ -187,6 +209,17 @@ class WAFterpreter(Cmd):
                 # add job to the list of running jobs
                 self.jobs.append(job)
                 self.job_counter += 1                
+                
+                # wait for the process to write to mmap
+                while proc_buffer.size() <= 0:
+                    continue
+
+                # append int to pids, remove null bytes so we can convert it to an int
+                proc_buffer.seek(0)
+                self.pids.append(int(proc_buffer.readline().strip('\x00')))
+
+                # clear the file
+                proc_buffer.flush()
                 
                 ret = 0 # 0 keeps WAFterpreter going, 1 quits it
 
@@ -273,7 +306,9 @@ class WAFterpreter(Cmd):
                # default option setter doesn't exist; fall back to a direct assignment
                self.current_plugin.options[name] = value, _defaultvalue, _required, _descr
 
-           
+   def do_test(self,line):
+       print self.plugin_paths
+       
    # return a Futures object given its job ID as a string or int
    def get_job(self, _job_id):
 
@@ -303,6 +338,9 @@ class WAFterpreter(Cmd):
        
        # extract module's name and extension from filepath
        mod_name,file_ext = os.path.splitext(os.path.split(filepath)[-1])
+       
+       #fill plugin name and location
+       self.plugin_paths.update({mod_name: filepath})
        
        # if it is a precompiled module, use the precompiled loader
        if file_ext.lower() == '.pyc':
@@ -436,13 +474,18 @@ class WAFterpreter(Cmd):
 
        # loop over the specified jobs...
        for job_id in job_ids:
-         job = self.get_job( job_id )
+           job = self.get_job( job_id )
+           
+           if not job.cancel():
+               answer = raw_input('job could not be cancelled, do you want to kill it? [Y/N]')
+           if 'Y' or 'y' in answer:
+               os.kill(self.pids[job_id], signal.SIG_DFL)
          
-         # ...and try to end them
-         try:
-             job.cancel()
-         except:
-             print('Job ID {} not found'.format(job_id))
+           # ...and try to end them
+           try:
+               job.cancel()
+           except:
+               print('Job ID {} not found'.format(job_id))
 
              
    def complete_kill(self,text,line,begin_idx,end_idx):
