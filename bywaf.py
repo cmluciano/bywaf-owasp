@@ -152,6 +152,7 @@ class WAFterpreter(Cmd):
         
         # quit on EOF
         elif cmd in ['EOF', 'quit', 'exit']:
+            proc_buffer.close()
             self.lastcmd = ''
             return 1
 
