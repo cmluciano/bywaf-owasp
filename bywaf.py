@@ -34,12 +34,18 @@ proc_buffer = mmap.mmap(-1, 7, 'MAP_SHARED')
 # Adar Grof: since this function happens in a new process
 # it can't a method in a class, a class is not picklable by python.
 # also the reason why we create a new instance of the class to do the job.
-def job_delegate(cmd,args):
+def job_delegate(cmd,args, plugins, options):
     
     proc_buffer.seek(0)
     proc_buffer.write(str(os.getpid()))
     
-    delegate = WAFterpreter()
+
+    delegate = WAFterpreter()    
+    #load each plugin from the list
+    if options:
+        delegate._load_module([plugin for plugin in plugins.values()])
+        delegate.current_plugin.options = options
+    
     newfunc = getattr(delegate, 'do_' + cmd)
     #value is stored in job.results
     return newfunc(args)
@@ -61,6 +67,8 @@ class WAFterpreter(Cmd):
       # is a dictionary of { "plugin_name" : loaded_module_object }
       self.plugins = {}  
       
+      # dictionary of {plugin name : plugin path} 
+      self.plugin_paths = {}
       # dictionary of global variable names and values
       self.global_options = {} 
       
@@ -189,7 +197,8 @@ class WAFterpreter(Cmd):
                 print('backgrounding job {}'.format(self.job_counter))
                 
                 # background the job
-                job = self.job_executor.submit(job_delegate, cmd, arg)
+                job = self.job_executor.submit(job_delegate, cmd, arg, self.plugin_paths, self.current_plugin.options if self.current_plugin else None)
+
                 
                 job.job_id = self.job_counter
                 job.name = self.current_plugin_name + '/' + cmd
@@ -296,7 +305,9 @@ class WAFterpreter(Cmd):
                # default option setter doesn't exist; fall back to a direct assignment
                self.current_plugin.options[name] = value, _defaultvalue, _required, _descr
 
-           
+   def do_test(self,line):
+       print self.plugin_paths
+       
    # return a Futures object given its job ID as a string or int
    def get_job(self, _job_id):
 
@@ -326,6 +337,9 @@ class WAFterpreter(Cmd):
        
        # extract module's name and extension from filepath
        mod_name,file_ext = os.path.splitext(os.path.split(filepath)[-1])
+       
+       #fill plugin name and location
+       self.plugin_paths.update({mod_name: filepath})
        
        # if it is a precompiled module, use the precompiled loader
        if file_ext.lower() == '.pyc':
