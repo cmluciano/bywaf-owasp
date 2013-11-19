@@ -152,6 +152,7 @@ class WAFterpreter(Cmd):
         
         # quit on EOF
         elif cmd in ['EOF', 'quit', 'exit']:
+            proc_buffer.close()
             self.lastcmd = ''
             return 1
 
@@ -388,7 +389,7 @@ class WAFterpreter(Cmd):
        self.plugins[new_module_name] = new_module
        
        
-       commands = [f for f in dir(new_module) if f.startswith('do_')]
+       commands = [f for f in dir(new_module) if f.startswith('do_') or f.startswith('complete_') or f.startswith('help_')]
        self.plugins[new_module_name].commands = commands
        
        # set current plugin
@@ -563,8 +564,7 @@ class WAFterpreter(Cmd):
                status = 'Completed'
            elif j.running():
                status = 'Running'
-           elif j.paused():
-               status = 'Paused'  # not sure if this is reached
+               
            print(format_string.format( str(j.job_id), j.command_line, status ))
         
    def do_gset(self, args):
@@ -598,20 +598,48 @@ class WAFterpreter(Cmd):
        option_names = [opt+' ' for opt in self.global_options.keys() if opt.startswith(text)]
        return option_names                  
            
-   def do_set(self, arg):
+   def set(self, name, value):
        """set a plugin's local variable.  This command takes the form 'set VARNAME VALUE'."""
-
-       # if no plugin is currently selected       
+       self.set_option(name, value)
+       print('{} => {}'.format(name, value))
+       
+   #sets plugin parameters, takes the format of 'set NAME_1=VALUE_1 NAME_2=VALUE_2 ...'
+   def do_set(self, arg):
+       
        if not self.current_plugin:
-           print('no plugin currently selected')
+           print('no plugin selected')
+           return
+       
+       opt_count = arg.count('=')
+       
+       if opt_count == 0:
+           print('no opotion set')
            return
 
-       (name,value)=string.split(arg, maxsplit=1)
+       #set varibles to store options
+       name, value, next_name = ('', '', '', '')
 
-       self.set_option(name, value)
+       #is it only one 'set' ?
+       if opt_count == 1:
+           name,value = arg.split('=')
+           self.go_set(name, value)
 
-       print('{} => {}'.format(name, value))
 
+       elif opt_count > 1:
+           for i, param in enumerate(arg.split('=')):
+               #we get a list of format: [name],[value name]...[value]
+               param_length = len(param.split())
+
+               #if it's the beginning, we will only fetch one variable- 'name'
+               if param_length > 1:
+                   value, next_name = param.split()
+                   self.set(name, value)
+               elif i==0:
+                   name = param
+               elif param_length == 1:
+                   value = param
+                   self.set(next_name, value)
+                   
    # completion function for the do_set command: return available option names
    def complete_set(self,text,line,begin_idx,end_idx):
        option_names = [opt+' ' for opt in self.current_plugin.options.keys() if opt.startswith(text)]
@@ -822,8 +850,26 @@ class WAFterpreter(Cmd):
            # re-use the filename completer
            return self.filename_completer(text, line, begin_idx, end_idx, level=2)           
 
-
-
+#prevents exceptions from bringing down the app
+#and offers options to handle the exception.
+def interpreter_loop():
+    try:
+        wafterpreter.cmdloop()
+        sys.exit(0)
+    except Exception as e:
+        print '\nerror encountered, continue[Any-Key], show stack trace and continue[SC], show stack trace and quit[S]'
+        answer = raw_input()
+        if answer == 'S' or answer == 's':
+            raise(e)
+        elif answer == 'SC' or answer == 'sc':
+            import traceback
+            traceback.print_exc()
+        else:
+            #present the error briefly
+            print('{}\n'.format(e))
+    #we don't want to show the user the welcome message again.
+    wafterpreter.intro = ''
+    interpreter_loop()
 #---------------------------------------------------------------
 #
 # Main function
@@ -878,4 +924,4 @@ if __name__=='__main__':
             sys.exit(3)
 
     # begin accepting commands
-    wafterpreter.cmdloop()
+    interpreter_loop()
