@@ -1,3 +1,8 @@
+# identwaf:  wrapper around WafW00F, provides 'identwaf' command
+#
+# - Requires WafW00f.py in the same plugin directory
+# - Additionally, wafw00f requires evillib.
+
 options = {
 
    # name : (value, default_value, required, description)
@@ -21,7 +26,11 @@ options = {
 }
 
 # set this to app.plugin_path
-PLUGIN_PATH = 'plugins/external/wafw00f.py')        
+# in the future, have wafterpreter set the "my_plugin_path", and use the directory from this path + 'wafw00f.py'
+PLUGIN_PATH = 'plugins/external/'
+
+# if True, then plugin options will be simulated
+SIMULATE_USER_INPUT = True
         
 # idea: be able to specify TARGET_HOST on the bywaf command line; i.e. "identwaf TARGET_HOST=... TARGET_PORT=..."
 # as well as through plugin options.  Options on the commandline override settings specified in the plugin options.
@@ -30,10 +39,11 @@ def do_identwaf(args):
     #params = args.split()
 
     # simulate user command-line settings
-    app.set_option('TARGET_HOST', '1.1.1.1 2.2.2.2 3.3.3.3')
-    app.set_option('VERBOSE', '3')
-    app.set_option('DISABLE_REDIRECT', 'no')
-    app.set_option('FIND_ALL', 'yes')
+    if SIMULATE_USER_INPUT:
+        app.set_option('TARGET_HOST', '1.1.1.1 2.2.2.2 3.3.3.3')
+        app.set_option('VERBOSE', '3')
+        app.set_option('DISABLE_REDIRECT', 'no')
+        app.set_option('FIND_ALL', 'yes')
        
     # set up parameters for calling WafW00F
     params = 'wafw00f ' + ' '.join([
@@ -46,10 +56,10 @@ def do_identwaf(args):
 
     # run wafwoof
     try:
-        import .path
+        import os,os.path
         import imp
 
-        wafw00f_moodule = imp.load_source('wafw00f', os.path.join(PLUGIN_PATH, 'wafw00f.py')
+        wafw00f_module = imp.load_source('wafw00f', os.path.join(PLUGIN_PATH, 'wafw00f.py'))
         print('executing {}'.format(params))
         wafw00f_module.main(params)
     except Exception as e:
