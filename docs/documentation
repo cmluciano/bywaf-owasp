@@ -177,7 +177,9 @@ This method physically loads the module with load_module(), adds the
 module to Wafterpreter's list of loaded plugins, and changes the
 prompt to reflect the newly selected plugin. Additionally, it provides
 the plugin with a link back to the Wafterpreter instance assigning
-"self" to a new module property named "app". 
+"self" to a new module property named "app".
+
+A plugin's path is made availabe upon loading in the plugin's .plugin_path property.
 
 
 What your plugin needs to define:
