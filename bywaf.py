@@ -323,7 +323,7 @@ class WAFterpreter(Cmd):
        # verify that this module has the necessary Bywaf infrastructure
        if not hasattr(py_mod, "options"):
            raise Exception("options dictionary not found")
-           
+       
        # return the loaded module
        return mod_name, py_mod
    
@@ -391,6 +391,9 @@ class WAFterpreter(Cmd):
        
        commands = [f for f in dir(new_module) if f.startswith('do_') or f.startswith('complete_') or f.startswith('help_')]
        self.plugins[new_module_name].commands = commands
+       
+       # give plugin a link to its own path
+       self.plugins[new_module_name].plugin_path = filepath
        
        # set current plugin
        # and change the prompt to reflect the plugin's name

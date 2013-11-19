@@ -25,9 +25,7 @@ options = {
 #   'HOSTFILE': ('', '', 'no', 'list of hosts to identify; specify one host:port per line'),
 }
 
-# set this to app.plugin_path
-# in the future, have wafterpreter set the "my_plugin_path", and use the directory from this path + 'wafw00f.py'
-PLUGIN_PATH = 'plugins/external/'
+
 
 # if True, then plugin options will be simulated
 SIMULATE_USER_INPUT = True
@@ -56,12 +54,17 @@ def do_identwaf(args):
 
     # run wafwoof
     try:
-        import os,os.path
+        import os.path
         import imp
 
-        wafw00f_module = imp.load_source('wafw00f', os.path.join(PLUGIN_PATH, 'wafw00f.py'))
+        # load wafwoof and import it
+        wafwoof_path = os.path.join(os.path.dirname(plugin_path), 'wafw00f.py')
+        wafw00f_module = imp.load_source('wafw00f', wafwoof_path)
         print('executing {}'.format(params))
+        
+        # call its main with the parameters we set above
         wafw00f_module.main(params)
+        
     except Exception as e:
         import traceback as t
         exc_msg = t.format_exc()
