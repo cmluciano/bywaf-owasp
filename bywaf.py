@@ -1,3 +1,5 @@
+#!/usr/bin/env python2
+
 # ---------------------------------------------------
 # bywaf.py
 # ---------------------------------------------------
@@ -26,21 +28,6 @@ DEFAULT_PLUGIN_PATH = "./"
 # history file name
 DEFAULT_HISTORY_FILENAME = "bywaf-history.txt"
 
-
-# Roey Katz: Job delegate utility function: takes a command method or function, 
-# calls it and returns its results.  A method is not pickleable, and
-# hence is not suitable for calling ProcessPoolExecutor.submit() in
-# Wafterpreter.oncecmd().  This function is a module-level function that IS pickleable.
-
-# Adar Grof: since this function happens in a new process
-# it can't a method in a class, a class is not picklable by python.
-# also the reason why we create a new instance of the class to do the job.
-def job_delegate(cmd,args):
-    delegate = WAFterpreter()
-    newfunc = getattr(delegate, 'do_' + cmd)
-    #value is stored in job.results
-    return newfunc(args)
-    
 # Interactive shell class
 class WAFterpreter(Cmd):
     
@@ -64,8 +51,8 @@ class WAFterpreter(Cmd):
       
       
       # jobs are spawned using this object's "submit()"
-      self.job_executor = concurrent.futures.ProcessPoolExecutor(DEFAULT_MAX_CONCURRENT_JOBS)      
-      # self.job_executor = concurrent.futures.ThreadPoolExecutor(MAX_CONCURRENT_JOBS)
+#      self.job_executor = concurrent.futures.ProcessPoolExecutor(DEFAULT_MAX_CONCURRENT_JOBS)      
+      self.job_executor = concurrent.futures.ThreadPoolExecutor(DEFAULT_MAX_CONCURRENT_JOBS)
 
       # running counter, increments with every job; used as Job ID
       self.job_counter = 0 
@@ -166,7 +153,7 @@ class WAFterpreter(Cmd):
         
         # quit on EOF
         elif cmd in ['EOF', 'quit', 'exit']:
-            proc_buffer.close()
+#            proc_buffer.close()
             self.lastcmd = ''
             return 1
 
@@ -191,16 +178,19 @@ class WAFterpreter(Cmd):
                 print('backgrounding job {}'.format(self.job_counter))
                 
                 # background the job
-                job = self.job_executor.submit(job_delegate, cmd, arg)
+                job = self.job_executor.submit(func, arg)
                 
                 job.job_id = self.job_counter
                 job.name = self.current_plugin_name + '/' + cmd
                 job.command_line = line
                 job.add_done_callback(self.finished_job_callback)
+                
+                job.Canceled = False
 
                 # add job to the list of running jobs
                 self.jobs.append(job)
-                self.job_counter += 1                
+                self.job_counter += 1
+                
                 
                 ret = 0 # 0 keeps WAFterpreter going, 1 quits it
 
@@ -452,7 +442,11 @@ class WAFterpreter(Cmd):
          
          # ...and try to end them
          try:
-             job.cancel()
+             # this doesn't cancel the job, it just stops a job from starting
+#             result = job.cancel() 
+
+             job.Canceled = True
+             print("result is {}".format(result))
          except:
              print('Job ID {} not found'.format(job_id))
 
@@ -856,20 +850,38 @@ def interpreter_loop():
     try:
         wafterpreter.cmdloop()
         sys.exit(0)
+        
+    # handle an exception
     except Exception as e:
-        print '\nerror encountered, continue[Any-Key], show stack trace and continue[SC], show stack trace and quit[S]'
-        answer = raw_input()
+        
+        print('\nerror encountered, continue[Any-Key], show stack trace and continue[SC], show stack trace and quit[S]')
+        
+        # python2/3 compatibility check
+        try:
+            input = raw_input
+        except NameError:
+            pass
+        
+        # ask user how they want to handle the exception
+        answer = input()
+
+        # show stack trace and quit
         if answer == 'S' or answer == 's':
             raise(e)
+        
+        # show stack trace and continue
         elif answer == 'SC' or answer == 'sc':
             import traceback
             traceback.print_exc()
+            
+        #present the error briefly            
         else:
-            #present the error briefly
             print('{}\n'.format(e))
+            
     #we don't want to show the user the welcome message again.
     wafterpreter.intro = ''
     interpreter_loop()
+    
 #---------------------------------------------------------------
 #
 # Main function

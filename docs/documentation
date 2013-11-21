@@ -211,7 +211,8 @@ A plugin module's functions will automatically be exposed as commands
 to the user if their names start with "do_".  These functions may be
 complemented with help_ and complete_ functions, just as do_ methods
 in the Wafterpreter's class definition may be complemented with
-complete_ and help_ methods. 
+complete_ and help_ methods.
+
 
 An example plugin definition appears in test.py.
 
