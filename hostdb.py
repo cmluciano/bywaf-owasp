@@ -27,11 +27,11 @@ class HostDatabase:
         
            CREATE TABLE Ports(
                id        INTEGER PRIMARY KEY,
-               portnum   INTEGER CHECK (portnum>0 && portnum<65535),
+               portnum   INTEGER CHECK (portnum>0 and portnum<65535),
                protocol  TEXT,
                state     TEXT,
                
-               FOREIGN KEY (hostid) REFERENCES Hosts(id),
+               FOREIGN KEY (hostid) REFERENCES Hosts(id)
                );
 
            """)
