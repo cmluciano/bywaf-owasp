@@ -20,7 +20,7 @@ from functools import partial
 
 
 # our library
-from hostdb import HostDatabase
+#from hostdb import HostDatabase
 
 # global constants
 DEFAULT_MAX_CONCURRENT_JOBS = 10
@@ -68,7 +68,7 @@ class WAFterpreter(Cmd):
       self.finished_jobs = []
 
       # create host information database
-      self.hostdb = HostDatabase()
+#      self.hostdb = HostDatabase()
       
       
    # ----------- Overriden Methods ------------------------------------------------------
