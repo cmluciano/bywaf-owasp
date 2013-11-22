@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
+
 # standard Python library imports
 
 # secondary Python library imports
