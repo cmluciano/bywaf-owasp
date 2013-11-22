@@ -159,9 +159,34 @@ queries for jobs.
   - save_history(): an API method for saving the command history to a file
   - load_history(): an API method for loading the command history from a file
   - clear_history(): an API method for clearing the command history
+  
   - _load_module(): a private low-level method for loading modules.
     Gets called by do_use().  There should not be a reason for
-    its use outside that method. 
+    its use outside that method.
+    
+In addition to Wafterpreter API, Bywaf gives plugins the ability to
+add and query host and port information in its internal database:
+
+
+   - add_host():  Add a host to the database, where:
+           - host_ip: a string containing the host's Internet Protocol (IP) number
+           - host_name: the name associated with this host
+
+   - add_port():  Add port information for a given host to the database, where:
+           - host_ip:  a string containing the host's Internet Protocol (IP) number
+           - port_number:  a string containing the port number
+           - port_protocol: one of "tcp", "udp"
+           - service_name: name of the service or program responding to queries on this port
+           - status: can be "Open", "Closed", or "Filered".
+
+   - get_host_portinfo  Return all port information for the specified host, where:
+           - host_ip: a string containing the host's Internet Protocol (IP) number           
+
+   - list_matching_ports():  Return all hosts who have this port open, where:
+           - port_number:  a string containing the port number
+           - port_protocol: one of "tcp", "udp"
+           - service_name: name of the service or program responding to queries on this port
+           - status: optional.  Can be "Open", "Closed", or "Filered". """   
 
 
 Plugin requirements
