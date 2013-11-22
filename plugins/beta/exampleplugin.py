@@ -82,6 +82,7 @@ def do_cat(line):
 def complete_cat(text,line,begin_idx,end_idx):
     return app.filename_completer(text, line, begin_idx, end_idx)
 
+
 # Read a file and return its contents.
 def cat(fn):
     with open(fn) as f:
