@@ -401,16 +401,16 @@ class WAFterpreter(Cmd):
 
            # try and register its optional help function, if one exists
            try:
-               helpfunc = getattr(new_module, 'help_' + command_name[5:])
-               setattr(self, 'help' + command_name, helpfunc)
-           except:
-               pass 
-               
+               helpfunc = getattr(new_module, 'help_' + command_name[3:])
+               setattr(self, helpfunc.__name__, helpfunc)
+           except AttributeError:  # help_ not found
+               pass
+
            # try and register its optional completion function, if one exists
            try:
-               completefunc = getattr(new_module, 'complete_' + command_name[10:])
-               setattr(self, 'complete_' + command_name, completefunc)
-           except:
+               completefunc = getattr(new_module, 'complete_' + command_name[3:])
+               setattr(self, completefunc.__name__, completefunc)
+           except AttributeError:  # complete__ not found
                pass
 
    def complete_use(self,text,line,begin_idx,end_idx):
