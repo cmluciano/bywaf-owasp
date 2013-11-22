@@ -4,7 +4,7 @@
 
 # secondary Python library imports
 # (should be in your distribution's repository)
-import sqlite
+import sqlite3
 
 # Implements a database of host and port information, with API calls for plugins
 class HostDatabase:
@@ -76,7 +76,7 @@ class HostDatabase:
            - status: optional.  Can be "Open", "Closed", or "Filered". """
 
        # fix this
-       results = self.cursor.execute('
+       results = self.cursor.execute("""
            SELECT *
            FROM Ports
            LEFT JOIN Hosts ON Hosts.ID=Ports.HostID
@@ -84,9 +84,9 @@ class HostDatabase:
            WHERE Orders.ID = port_protocol
            WHERE status="open"
            WHERE port_protocol=port_protocol'
-           )
+           """)
            
-        return results
+       return results
 
     
 # implement test routines here    
