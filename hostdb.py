@@ -22,16 +22,19 @@ class HostDatabase:
            CREATE TABLE Hosts(
                id        INTEGER PRIMARY KEY,
                hostip    TEXT UNIQUE,
-               hostname  TEXT,
+               hostname  TEXT
                );
         
            CREATE TABLE Ports(
                id        INTEGER PRIMARY KEY,
                portnum   INTEGER CHECK (portnum>0 and portnum<65535),
                protocol  TEXT,
+               svcname   TEXT,
                state     TEXT,
+               hostip    TEXT,
+               foreignid INTEGER,
                
-               FOREIGN KEY (hostid) REFERENCES Hosts(id)
+               FOREIGN KEY (foreignid) REFERENCES Hosts(id)
                );
 
            """)
@@ -47,50 +50,108 @@ class HostDatabase:
        """Database API:  Add a host to the database, where:
            - host_ip: a string containing the host's Internet Protocol (IP) number
            - host_name: the name associated with this host"""
-           
-        # not there already?  Then add it
-       self.cursor.execute("INSERT INTO Hosts(hostip, hostname) VALUES (?, ?);", (hostip, hostname))
+
+       # note: FIXME - skip if this is already in the database
+       self.cursor.execute("INSERT INTO Hosts(hostip, hostname) VALUES (?, ?);", (host_ip, host_name))
        
-       pass
-   
-   def add_port(self, host_ip, port_number, port_protocol, service_name, status):
+
+   def get_host_iplist(self):
+       results = self.cursor.execute("SELECT hostip from Hosts")
+       return results
+       
+       
+   def get_host_id(self, host_ip):
+       results = self.cursor.execute("SELECT id from Hosts WHERE hostip=?",[host_ip])
+       return results[0]
+  
+   def add_port(self, portnum, port_protocol, service_name, state, hostip):
        """Database API:  Add port information for a given host to the database, where:
            - host_ip:  a string containing the host's Internet Protocol (IP) number
-           - port_number:  a string containing the port number
-           - port_protocol: one of "tcp", "udp"
+           - portnum:  a string containing the port number
+           - protocol: one of "tcp", "udp"
            - service_name: name of the service or program responding to queries on this port
            - status: can be "Open", "Closed", or "Filered". """
-       pass
+           
+       self.cursor.execute("INSERT INTO Ports(portnum, protocol, svcname, state, hostip) VALUES (?, ?, ?, ?, ?);", (portnum, port_protocol, service_name, state, hostip))
+
    
    def get_host_portinfo(self, host_ip):
        """Database API:  Return all port information for the specified host, where:
            - host_ip: a string containing the host's Internet Protocol (IP) number           
            """
-       pass
+       results = self.cursor.execute("SELECT * From Ports  WHERE Ports.hostip=?", [host_ip])
+       return results
    
-   def list_matching_ports(self, port_number, port_protocol, status="Open"):
+   
+   def list_matching_ports(self, portnum, protocol="TCP", state="open"):
        """Database API:  Return list of all hosts that have this port open, where:
-           - port_number:  a string containing the port number
-           - port_protocol: one of "tcp", "udp"
+           - portnum:  a string containing the port number
+           - protocol: one of "tcp", "udp"
            - service_name: name of the service or program responding to queries on this port
            - status: optional.  Can be "Open", "Closed", or "Filered". """
-
-       # fix this
-       results = self.cursor.execute("""
-           SELECT *
-           FROM Ports
-           LEFT JOIN Hosts ON Hosts.ID=Ports.HostID
            
-           WHERE Orders.ID = port_protocol
-           WHERE status="open"
-           WHERE port_protocol=port_protocol'
-           """)
-           
+       results = self.cursor.execute("SELECT hostip,portnum,protocol,state FROM Ports WHERE portnum=? AND state=?", [portnum, state])
        return results
+           
 
-    
+
+   
+# loads /etc/services and returns dictionary of "ip/port":servicename
+def load_service_defs(fname):
+    services = parse_service_defs(open(fname).readlines())
+    return services
+
+# feed it lines of services definition (like from /etc/services) and it will return a
+# dictionary of "ip/port":servicename
+def parse_service_defs(lines):
+    services = {}
+    for _line in lines:
+       line = _line.strip()
+       if line == '': continue
+       if line[0]=='#': continue
+       portAndType = line.split()[1]
+       serviceName = line.split()[0]
+       services[portAndType] = serviceName
+
+    return services
+
+
+
 # implement test routines here    
 if __name__=='__main__':
-    pass
+    
+    db = HostDatabase()
+    servicedefs = load_service_defs('/etc/services')
+    
 
-           
+    port_protocol = "TCP"    
+
+    # create some example hosts and ports
+    IP='1.1.1.1'
+    HOSTNAME='www.test123.com'
+    db.add_host(host_ip=IP, host_name=HOSTNAME)
+    for portnum in range(20, 100):
+       try:
+           # note: FIXME - skip if this is already in the database
+           service_name = servicedefs[portnum]
+       except Exception:
+           service_name  = "????"
+       db.add_port(portnum=str(portnum), port_protocol="TCP", service_name=service_name, state="open", hostip=IP)       
+
+    IP='2.2.2.2'
+    HOSTNAME='www.testABC.com'
+    db.add_host(host_ip=IP, host_name=HOSTNAME)    
+    for portnum in range(10, 30):
+       try:
+           # note: FIXME - skip if this is already in the database
+           service_name = servicedefs[portnum]
+       except Exception:
+           service_name  = "????"
+       db.add_port(portnum=str(portnum), port_protocol="TCP", service_name=service_name, state="open", hostip=IP)
+
+        
+    # sift database for all open port 25/TCP
+    ports = db.list_matching_ports("25", protocol="TCP", state="open")
+    print 'ports is', ports
+    for p in ports: 
+        print p
