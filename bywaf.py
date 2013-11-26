@@ -596,7 +596,7 @@ class WAFterpreter(Cmd):
        return option_names                  
            
    def set(self, name, value):
-       """set a plugin's local variable.  This command takes the form 'set VARNAME VALUE'."""
+       """set a plugin's local variable.  This command takes the form 'set VARNAME=VALUE [VARNAME2=VALUE2 ...]'."""
        self.set_option(name, value)
        print('{} => {}'.format(name, value))
        
@@ -614,12 +614,12 @@ class WAFterpreter(Cmd):
            return
 
        #set varibles to store options
-       name, value, next_name = ('', '', '', '')
+       name, value, next_name = ('', '', '')
 
        #is it only one 'set' ?
        if opt_count == 1:
            name,value = arg.split('=')
-           self.go_set(name, value)
+           self.set_option(name, value)
 
        elif opt_count > 1:
            for i, param in enumerate(arg.split('=')):
@@ -630,12 +630,12 @@ class WAFterpreter(Cmd):
                #if it's the beginning, we will only fetch one variable- 'name'
                if param_length > 1:
                    value, next_name = param.split()
-                   self.set(name, value)
+                   self.set_option(name, value)
                elif i==0:
                    name = param
                elif param_length == 1:
                    value = param
-                   self.set(next_name, value)
+                   self.set_option(next_name, value)
                    
    # completion function for the do_set command: return available option names
    def complete_set(self,text,line,begin_idx,end_idx):
