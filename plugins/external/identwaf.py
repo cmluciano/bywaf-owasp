@@ -59,11 +59,12 @@ def do_identwaf(args):
 
         # load wafwoof and import it
         wafwoof_path = os.path.join(os.path.dirname(plugin_path), 'wafw00f.py')
-        wafw00f_module = imp.load_source('wafw00f', wafwoof_path)
-        print('executing {}'.format(params))
+        wafw00f = imp.load_source('wafw00f', wafwoof_path)
+#        print('executing {}'.format(params))
         
         # call its main with the parameters we set above
-        wafw00f_module.main(params)
+
+        wafw00f.main(params)
         
     except Exception as e:
         import traceback as t
