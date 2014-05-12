@@ -39,6 +39,10 @@ Installation
 
       https://pypi.python.org/pypi/futures (lastest version)
       python setup.py install
+	  
+	  or
+	  
+	  python(version) setup.py install
 
    
 

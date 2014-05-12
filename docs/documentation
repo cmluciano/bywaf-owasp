@@ -1,10 +1,11 @@
-Developer documentation
-=======================
+Bywaf Developer documentation
+=============================
 
-Bywaf is a tool for streamlining web application firewall auditing.
-It consists of a command-line interpreter and a set of plugins.
-This document describes the Bywaf application's architecture, the API
-it provides for plugins and the requirements for writing plugins.
+Bywaf is a command-line tool for streamlining web application firewall
+auditing. It consists of a command-line interpreter and a set of
+plugins. This document describes the Bywaf application's architecture,
+the API it provides for plugins and the requirements for writing
+plugins.
 
 
 Table of contents
@@ -39,12 +40,19 @@ adds some important additions, including:
 Wafterpreter employs a simple plugin system consisting of python
 modules containing commands exposed to the user (functions starting
 with "do_") and a dictionary of user-modifiable options ("options").
-When do_use() loads a plugin, it provides a link to its own instance
-by setting the loaded module's "app" property to "self". 
 
 A number of Wafterpreter methods have been exposed to plugins,
 allowing them to change the interpreter's behavior and access other
-modules' options.  
+modules' options.
+
+For notifications of changes in plugin options, Bywaf supports
+callback functions.  The Wafterpreter will call a function for a given
+plugin option if it begins with "set_"; for example, for an option
+like "FILENAME", the Wafterpreter will search for and call a
+set_FILENAME(), if it exists.  The Wafterpreter will also search for
+and call "set_default()", if it exists, for any option that does not
+have a specific setter function.  Failing these attempts, Wafterpreter
+will perform a direct assignment on the plugin's option. 
 
 
 Overriden Cmd methods
@@ -81,27 +89,30 @@ name.
 
 The following native commands are available in Wafterpreter:
 
-  - do_use(): select a module.  Tab-completes filenames.
-  - do_kill(): kills a running command.  Tab-completes to running
+  - do_use(): select a module.
+  
+  - do_kill(): kills a running command. 
     commands in the job queue.
+    
   - do_d(): removes a completed command from the job queue.
-    Tab-completes to completed commands in the job queue.
+
   - do_result(): displays the return result of a completed command.
-    Tab-completes to completed commands in the job queue.
+
   - do_script(): executes a script given a filename.  A script is a
     list of commands, one per line.  Among other things, this is useful
-    for loading a configuration.  Tab-completes filenames.
-  - do_gshow(): shows global options.  Tab-completes global options.
+    for loading a configuration.  
+    
+  - do_gshow(): shows global options.  
+  
   - do_set(): when a plugin is loaded, do_set() shows its options and
-    functions available to the user.  Tab-completes option names.
+    functions available to the user.
+    
   - do_show(): shows the currently-selected plugin's options and
-    commands available to the user.  Tab-completes option names.
-  - do_shell(): executes a command in a system shell.  Does not
-    tab-complete.
+    commands available to the user. 
+    
+  - do_shell(): executes a command in a system shell.  
+    
   - do_history(): shows, clears, loads and saves the command history.
-    This is a multi-level command which first tab-completes "show",
-    "clear", "load" and "save", and for "load" and "save"
-    tab-completes filenames.
     
   - complete_ functions: Commands may have a corresponding
     tab-completion function.  This gets called after a user types the
@@ -148,27 +159,85 @@ queries for jobs.
   - save_history(): an API method for saving the command history to a file
   - load_history(): an API method for loading the command history from a file
   - clear_history(): an API method for clearing the command history
+  
   - _load_module(): a private low-level method for loading modules.
     Gets called by do_use().  There should not be a reason for
-    its use outside that method. 
+    its use outside that method.
+    
+In addition to Wafterpreter API, Bywaf gives plugins the ability to
+add and query host and port information in its internal database:
+
+
+   - add_host():  Add a host to the database, where:
+           - host_ip: a string containing the host's Internet Protocol (IP) number
+           - host_name: the name associated with this host
+
+   - add_port():  Add port information for a given host to the database, where:
+           - host_ip:  a string containing the host's Internet Protocol (IP) number
+           - port_number:  a string containing the port number
+           - port_protocol: one of "tcp", "udp"
+           - service_name: name of the service or program responding to queries on this port
+           - status: can be "Open", "Closed", or "Filered".
+
+   - get_host_portinfo  Return all port information for the specified host, where:
+           - host_ip: a string containing the host's Internet Protocol (IP) number           
+
+   - list_matching_ports():  Return all hosts who have this port open, where:
+           - port_number:  a string containing the port number
+           - port_protocol: one of "tcp", "udp"
+           - service_name: name of the service or program responding to queries on this port
+           - status: optional.  Can be "Open", "Closed", or "Filered". """   
 
 
 Plugin requirements
 -------------------
 
-A plugin is a module loaded with the do_use() command.  At a minimum,
-it is expected to implement a dictionary of user options.
+A plugin is a module containing an optional dictionary of options and
+zero or more command functions (i.e. functions whose names start with
+"do_").  It it is loaded when the user types "use <plugin-name>", where
+<plugin-name> is the filename of a plugin's Python module.  
 
-This expected options dictionary must take the form {option_name: name,
-value, default_value, required, description }, where 'option_name' is
-a string containing the option's name, 'value' is a string containing
-the option's current value, 'default_value' is a string containing the
-option's default value, 'required' is a string of "Yes" or "No"
-describing whether or not this option must be set, and "description"
-is a one-line description of the option.  
+The "use" command calls Wafterpreter's do_use() to load the plugin.  
+This method physically loads the module with load_module(), adds the
+module to Wafterpreter's list of loaded plugins, and changes the
+prompt to reflect the newly selected plugin. Additionally, it provides
+the plugin with a link back to the Wafterpreter instance assigning
+"self" to a new module property named "app".
 
-Functions that are exposed to the user as a command must have names
-starting with "do_".
+A plugin's path is made availabe upon loading in the plugin's .plugin_path property.
+
+
+What your plugin needs to define:
+---------------------------------
+
+As stated above, there is no requirement for a a plugin's module to
+define anything.  There are instances where a plugin does not take any
+options, and there are instances where a plugin may not offer any user
+commands.  
+
+For modules offering or requiring options, Wafterpreter expects them
+to define an options dictionary in a specific format: they must take
+the form:
+
+  options = {
+    option_name: (name, value, default_value, required, description) 
+  }
+  
+where:
+
+  - "option_name" is a string containing the option's name, 
+  - "value" is a string containing the option's current value,
+  - "default_value" is a string containing the option's default value,
+  - "required" is a string of "Yes" or "No" describing whether or not this
+    option must be set, and 
+  - "description" is a one-line description of the option.  
+
+A plugin module's functions will automatically be exposed as commands
+to the user if their names start with "do_".  These functions may be
+complemented with help_ and complete_ functions, just as do_ methods
+in the Wafterpreter's class definition may be complemented with
+complete_ and help_ methods.
+
 
 An example plugin definition appears in test.py.
 

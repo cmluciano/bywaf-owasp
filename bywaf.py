@@ -1,3 +1,5 @@
+#!/usr/bin/env python2
+
 # ---------------------------------------------------
 # bywaf.py
 # ---------------------------------------------------
@@ -12,38 +14,45 @@ import sys
 import string
 import concurrent.futures
 import imp # for loading other modules
+import os.path
 import os
+from functools import partial
+
+
+# our library
+#from hostdb import HostDatabase
 
 # global constants
-MAX_CONCURRENT_JOBS = 10
+DEFAULT_MAX_CONCURRENT_JOBS = 10
+
+# path to the root of the plugins directory
+DEFAULT_PLUGIN_PATH = "./"
 
 # history file name
-HISTORY_FILENAME = "bywaf-history.txt"
+DEFAULT_HISTORY_FILENAME = "bywaf-history.txt"
 
 # Interactive shell class
 class WAFterpreter(Cmd):
     
    def __init__(self, completekey='tab', stdin=None, stdout=None):
-       
       Cmd.__init__(self, completekey, stdin, stdout)
-      
+     
       # base wafterpreter constants
       self.intro = "Welcome to Bywaf"      
       self.base_prompt = "Bywaf" 
       self.set_prompt('') # set the prompt
       self.delegate_input_handler = None # no delegated input by default
       
-
       # currently loaded plugins, loaded & selected with he "use" command.
       # is a dictionary of { "plugin_name" : loaded_module_object }
       self.plugins = {}  
       
       # dictionary of global variable names and values
       self.global_options = {} 
-
+      
       # jobs are spawned using this object's "submit()"
-      self.job_executor = concurrent.futures.ProcessPoolExecutor(MAX_CONCURRENT_JOBS)      
-#      self.job_executor = concurrent.futures.ThreadPoolExecutor(MAX_CONCURRENT_JOBS)
+#      self.job_executor = concurrent.futures.ProcessPoolExecutor(DEFAULT_MAX_CONCURRENT_JOBS)      
+      self.job_executor = concurrent.futures.ThreadPoolExecutor(DEFAULT_MAX_CONCURRENT_JOBS)
 
       # running counter, increments with every job; used as Job ID
       self.job_counter = 0 
@@ -58,6 +67,9 @@ class WAFterpreter(Cmd):
       # list of newly-finished backgrounded plugin command jobs
       self.finished_jobs = []
 
+      # create host information database
+#      self.hostdb = HostDatabase()
+      
       
    # ----------- Overriden Methods ------------------------------------------------------
    #
@@ -73,12 +85,12 @@ class WAFterpreter(Cmd):
            
            for j in self.finished_jobs:
                print("[{}]  Done  {}".format(str(j.job_id), j.command_line))
+               
            # clear the finished jobs list
            self.finished_jobs = []
            
        return stop
 
-      
    # override Cmd.emptyline() so that it does not re-issue the last command by default
    def emptyline(self):
        return
@@ -109,7 +121,6 @@ class WAFterpreter(Cmd):
 
         # flag variable
         exec_in_background = False
-        
         line = _line.strip()        
         
         # ignore comment lines
@@ -128,21 +139,19 @@ class WAFterpreter(Cmd):
 
         # extract command and its arguments from the line
         cmd, arg, line = self.parseline(line)
-        
         self.lastcmd = line        
         
         # if the line is blank, return self.emptyline()
         if not cmd:
             return self.emptyline()
         
-        # quit on EOF - get this working
+        # quit on EOF
         elif cmd in ['EOF', 'quit', 'exit']:
             self.lastcmd = ''
-            return 1
+            return 1 # 0 keeps WAFterpreter going, 1 quits it
 
-        # else, process thie command
+        # else, process the command
         else:
-            
             try:
                 func = getattr(self, 'do_' + cmd)
             except AttributeError:
@@ -157,7 +166,6 @@ class WAFterpreter(Cmd):
             # if user requested it, background the job
             # do not do this for internal commands                
             if exec_in_background: #and self.current_plugin and cmd in command_names:
-               
                 print('backgrounding job {}'.format(self.job_counter))
                 
                 # background the job
@@ -167,18 +175,18 @@ class WAFterpreter(Cmd):
                 job.name = self.current_plugin_name + '/' + cmd
                 job.command_line = line
                 job.add_done_callback(self.finished_job_callback)
+                
+                job.Canceled = False
 
                 # add job to the list of running jobs
                 self.jobs.append(job)
-                self.job_counter += 1                
-                
+                self.job_counter += 1
                 ret = 0 # 0 keeps WAFterpreter going, 1 quits it
 
             # else, just run the job (returning 1 causes Bywaf to exit)
             else:
-                
                 func(arg)                
-                ret = 0 # 0 keeps WAFterpreter going, 1 quits it 
+                ret = 0 # 0 keeps WAFterpreter going, 1 quits it
                 
             return ret
     
@@ -187,19 +195,19 @@ class WAFterpreter(Cmd):
    # These methods are exposed to the plugins and may be overriden by them.
    #
    #-----------------------------------------------------------------------------------   
-      
+
+   
    # utility method to autocomplete filenames.
    # Code adapted from http://stackoverflow.com/questions/16826172/filename-tab-completion-in-cmd-cmd-of-python
-   
    # I added "level", which is the level of command at which text is being completed.
    # level 1:  >command te<tab>   <-- text being completed here
    # level 2:  >command subcommand te<tab>  <-- text being completed here
-   def filename_completer(self, text, line, begidx, endidx, level=1):
+   def filename_completer(self, text, line, begidx, endidx, level=1, root_dir='./'):
 
       arg = line.split()[level:]
       
       if not arg:
-          completions = os.listdir('./')
+          completions = os.listdir(root_dir) 
       else:
           dir, part, base = arg[-1].rpartition('/')
           if part == '':
@@ -234,17 +242,29 @@ class WAFterpreter(Cmd):
        # cancel further input delegation
        self.delegate_input_handler = None
        
-       
-       
    # set an option's value.  Called by do_set()            
    def set_option(self, name, value):
 
        # retrieve the option (it's a tuple)       
        _value, _defaultvalue, _required, _descr = self.current_plugin.options[name]
        
-       # construct a new option tuple and set the option to it       
-       self.current_plugin.options[name] = value, _defaultvalue, _required, _descr
-       
+       # defer first to the specific setter callback, if it exists
+       try:
+           setter_func = getattr(self.current_plugin, 'get_'+name)
+           setter_func(name, value)
+           
+       # specific option setter callback doesn't exist,  so do a straight assignment 
+       except AttributeError:
+           # construct a new option tuple and set the option to it
+           
+           try:
+               self.current_plugin.set_default(name, value)
+           except AttributeError:
+               
+               # default option setter doesn't exist; fall back to a direct assignment
+               self.current_plugin.options[name] = value, _defaultvalue, _required, _descr
+
+           
    # return a Futures object given its job ID as a string or int
    def get_job(self, _job_id):
 
@@ -294,7 +314,7 @@ class WAFterpreter(Cmd):
        # verify that this module has the necessary Bywaf infrastructure
        if not hasattr(py_mod, "options"):
            raise Exception("options dictionary not found")
-           
+       
        # return the loaded module
        return mod_name, py_mod
    
@@ -359,9 +379,11 @@ class WAFterpreter(Cmd):
        # register with our list of modules (i.e., insert into our dictionary of modules)
        self.plugins[new_module_name] = new_module
        
-       
        commands = [f for f in dir(new_module) if f.startswith('do_')]
        self.plugins[new_module_name].commands = commands
+       
+       # give plugin a link to its own path
+       self.plugins[new_module_name].plugin_path = filepath
        
        # set current plugin
        # and change the prompt to reflect the plugin's name
@@ -379,21 +401,22 @@ class WAFterpreter(Cmd):
 
            # try and register its optional help function, if one exists
            try:
-               helpfunc = getattr(new_module, 'help_' + command_name[5:])
-               setattr(self, 'help' + command_name, helpfunc)
-           except:
-               pass 
-               
+               helpfunc = getattr(new_module, 'help_' + command_name[3:])
+               setattr(self, helpfunc.__name__, helpfunc)
+           except AttributeError:  # help_ not found
+               pass
+
            # try and register its optional completion function, if one exists
            try:
-               completefunc = getattr(new_module, 'complete_' + command_name[10:])
-               setattr(self, 'complete_' + command_name, completefunc)
-           except:
+               completefunc = getattr(new_module, 'complete_' + command_name[3:])
+               setattr(self, completefunc.__name__, completefunc)
+           except AttributeError:  # complete__ not found
                pass
-           
-   # alias use()'s completion function to the filename completer
-   complete_use = filename_completer 
 
+   def complete_use(self,text,line,begin_idx,end_idx):
+       return self.filename_completer(text, line, begin_idx, end_idx, root_dir=self.global_options['PLUGIN_PATH'])
+   
+           
    # attempt to cancel a running job
    def do_kill(self, args):
        """cancel one or more running jobs"""
@@ -410,7 +433,11 @@ class WAFterpreter(Cmd):
          
          # ...and try to end them
          try:
-             job.cancel()
+             # this doesn't cancel the job, it just stops a job from starting
+#             result = job.cancel() 
+
+             job.Canceled = True
+             print("result is {}".format(result))
          except:
              print('Job ID {} not found'.format(job_id))
 
@@ -500,10 +527,11 @@ class WAFterpreter(Cmd):
                    
        except IOError as e: 
            print('Could not load script file: {}'.format(e))
-           
-   # alias script()'s completion function to the filename completer
-   complete_script = filename_completer
-   
+
+   def complete_script(self,text,line,begin_idx,end_idx):
+       return self.filename_completer(text, line, begin_idx, end_idx, root_dir=self.global_options['PLUGIN_PATH'])
+
+   # fix: change printing to new style (with appends to a list and printing only at the end)
    def do_jobs(self, args):
        """list the status of running and completed jobs"""
        
@@ -533,8 +561,7 @@ class WAFterpreter(Cmd):
                status = 'Completed'
            elif j.running():
                status = 'Running'
-           elif j.paused():
-               status = 'Paused'  # not sure if this is reached
+               
            print(format_string.format( str(j.job_id), j.command_line, status ))
         
    def do_gset(self, args):
@@ -568,20 +595,48 @@ class WAFterpreter(Cmd):
        option_names = [opt+' ' for opt in self.global_options.keys() if opt.startswith(text)]
        return option_names                  
            
+   def set(self, name, value):
+       """set a plugin's local variable.  This command takes the form 'set VARNAME=VALUE [VARNAME2=VALUE2 ...]'."""
+       self.set_option(name, value)
+       print('{} => {}'.format(name, value))
+       
+   #sets plugin parameters, takes the format of 'set NAME_1=VALUE_1 NAME_2=VALUE_2 ...'
    def do_set(self, arg):
-       """set a plugin's local variable.  This command takes the form 'set VARNAME VALUE'."""
-
-       # if no plugin is currently selected       
+       
        if not self.current_plugin:
-           print('no plugin currently selected')
+           print('no plugin selected')
+           return
+       
+       opt_count = arg.count('=')
+       
+       if opt_count == 0:
+           print('no option set')
            return
 
-       (name,value)=string.split(arg, maxsplit=1)
+       #set varibles to store options
+       name, value, next_name = ('', '', '')
 
-       self.set_option(name, value)
+       #is it only one 'set' ?
+       if opt_count == 1:
+           name,value = arg.split('=')
+           self.set_option(name, value)
 
-       print('{} => {}'.format(name, value))
+       elif opt_count > 1:
+           for i, param in enumerate(arg.split('=')):
+               
+               #we get a list of format: [name],[value name]...[value]
+               param_length = len(param.split())
 
+               #if it's the beginning, we will only fetch one variable- 'name'
+               if param_length > 1:
+                   value, next_name = param.split()
+                   self.set_option(name, value)
+               elif i==0:
+                   name = param
+               elif param_length == 1:
+                   value = param
+                   self.set_option(next_name, value)
+                   
    # completion function for the do_set command: return available option names
    def complete_set(self,text,line,begin_idx,end_idx):
        option_names = [opt+' ' for opt in self.current_plugin.options.keys() if opt.startswith(text)]
@@ -595,55 +650,124 @@ class WAFterpreter(Cmd):
            print('No plugin currently selected')
            return
 
-       optname = args.strip()
-       available_options = self.current_plugin.options.keys()
-       option_list = []
+       SHOW_COMMANDS = False
+       SHOW_OPTIONS = False
+       params = args.split()
+       output_string = []
 
-       # default to show all option names.  If a user specifies a specific option, then only show that one
-       if not optname:
-           option_list = available_options
-           
-       elif optname not in option_list:
-           print('{}: no such plugin option'.format(optname))
-           return
-           
-       else:
-           option_list = [optname]
-       
+       # show all by default
+       if params == []:
+           params.append('all')
 
-       # construct the format string:  left-aligned, space-padded, minimum.maximum
-       format_string = '{:<15.15} {:<15.15} {:<15.15} {:<15.15} {:<15.30}'
-       
-       # print the header
-       print('\n\n')
-       print(format_string.format('Option', 'Value', 'Default Value', 'Required', 'Description'))
-       print(format_string.format(*["-"*15] * 5))
+       if params[0] in ('options', 'all'):
+           
+               if len(params)<2:
+                   options_list = self.current_plugin.options.keys()
+               else:
+                   options_list = params[1:]
 
-       # loop through the plugin's available options and display them
-       for name in sorted(option_list): 
-           value, defaultvalue, required, description = self.current_plugin.options[name]
-           print(format_string.format(name, value, defaultvalue, required, description))
-           
-           
-       # ------ show this plugin's available commands -----------
-       
-       # construct the format string:  function name, description
-       format_string = '{:<20.20} {}'
-       
-       # print the header
-       print('\n\n')
-       print(format_string.format('Command', 'Description'))
-       print(format_string.format(*["-"*20] * 2))
+               # construct the format string:  left-aligned, space-padded, minimum.maximum
+               # name, value, defaultvalue, required, description
+               format_string = '{:<15.15} {:<15.15} {:<15.15} {:<15.15} {:<15.30}'
+               
+               # construct header string
+               output_string.append('\n\n')
+               output_string.append(format_string.format('Option', 'Value', 'Default Value', 'Required', 'Description'))
+               output_string.append(format_string.format(*['-'*15] * 5))
 
-       # loop through the plugin's available options and display them
-       for command_name in sorted(self.current_plugin.commands):
-           command_docstring = getattr(self.current_plugin, command_name).__doc__
-           print(format_string.format(command_name[3:], command_docstring))
+               # construct table of values
+               try:
+                   for name in options_list:
+                       output_string.append(format_string.format(name, *self.current_plugin.options[name]))
+               except KeyError:
+                   print("Error, no such option")
+                   return
+
+       if params[0] in ('commands','all'):
            
+               # show all options if no option name was given
+#               try:
+#                   commands_list = params[1:]
+#               except IndexError:
+#                   commands_list = self.current_plugin.commands
+
+               _command_list = self.current_plugin.commands
+               if len(params)<2:
+                   commands_list = _command_list
+               else:  # note: the if clause closes this comprehension to insecure lookups
+                   commands_list = ['do_' + c for c in params[1:]]# if 'do_'+c in _command_list]
+               
+               # get the option names from the rest of the parameters.
+               
+               # construct the format string:  left-aligned, space-padded, minimum.maximum
+               # name, value, defaultvalue, required, description                   
+               format_string = '{:<20.20} {}'
+
+               # construct header 
+               output_string.append('\n\n')
+               output_string.append(format_string.format('Command', 'Description'))
+               output_string.append(format_string.format(*['-'*20] * 2))
+
+               try:
+                   for c in commands_list:
+                       cmd = getattr(self.current_plugin, c)
+                       output_string.append(format_string.format(cmd.__name__[3:], cmd.__doc__))
+                   
+                       
+               except AttributeError:
+                   print("Error, no such command")
+                   return
+               
+               output_string.append('\n')
+               
+                   
+       # display
+       print('\n'.join(output_string))
+
+                   
+
+
+   # utility function for completing against a list of matches, 
+   # given a list of words that have been inputted, a matchlist to match the word against, 
+   # and the level of the command
+   def simplecompleter(self, words, matchlist, level):
+
+      # user has not yet strted entering their choice
+      if len(words)==level:
+           return matchlist
+       
+      # user has entered a partial word
+      else:
+           partial_word = words[level]
+           return [opt + ' ' for opt in matchlist if opt.startswith(partial_word)]
+
+       
    # completion function for the do_set command: return available option names
    def complete_show(self,text,line,begin_idx,end_idx):
-       option_names = [opt+' ' for opt in self.current_plugin.options.keys() if opt.startswith(text)]
-       return option_names           
+       
+     words = line.split()       
+       
+     first_level = ['commands', 'options', 'all']
+     
+     # find out if this is first- or second-level completion:
+     # FIXME:  Make this generic and put it into an API helper function
+     # first level completion: we see either one word, OR two words and the second is only partially completed.  Complete the subcommand.
+     if len(words)==1 or (len(words)==2 and words[1] not in first_level):
+         option_names = [opt+' ' for opt in first_level if opt.startswith(text)]
+         return option_names
+     # second level completion: we see two words, the second fully completed. Complete the option or command name.
+     else:
+         # return a list of plugin commands
+         if words[1]=='commands':
+             # construct new list of command names without "do_"
+             cmds = [i[3:] for i in self.current_plugin.commands]
+             return self.simplecompleter(words, cmds, level=2)
+
+         # return a list of plugin options
+         elif words[1]=='options':
+             opts = self.current_plugin.options.keys()
+             return self.simplecompleter(words, opts, level=2)
+               
 
    def do_shell(self, line):
        """Execute shell commands"""
@@ -654,7 +778,11 @@ class WAFterpreter(Cmd):
        """Load, save, display and clear command history"""
        
        cmd = params.split()
-       
+
+       # default to show history if no sub-actions specified       
+       if not cmd:
+           cmd.append('show')
+      
        if cmd[0]=='load':
            try:
                fname = cmd[1]
@@ -663,7 +791,6 @@ class WAFterpreter(Cmd):
                print('filename not specified')
            except IOError as e: # error in loading file
                print('could not load file: {}'.format(e))
-               
        elif cmd[0]=='save':
            try:
                fname = cmd[1]
@@ -678,6 +805,7 @@ class WAFterpreter(Cmd):
            
        elif cmd[0]=='clear':
            self.clear_history()
+ 
        
    # completion function for the do_history command:  two-level completion (subcommand, then filename)
    def complete_history(self,text,line,begin_idx,end_idx):
@@ -685,7 +813,8 @@ class WAFterpreter(Cmd):
        words = line.split()
 
        # find out if this is first- or second-level completion:
-       
+
+       # FIXME:  Make this generic and put it into an API helper function
        # first level completion: we see either one word, OR two words and the second is only partially completed.  Complete the subcommand.
        if len(words)==1 or (len(words)==2 and words[1] not in ['load', 'save', 'show', 'clear']):
            option_names = [opt+' ' for opt in ['load', 'save', 'show', 'clear'] if opt.startswith(text)]
@@ -698,11 +827,47 @@ class WAFterpreter(Cmd):
            if words[1] not in ['load', 'save']:
                return
  
-           # re-use the filename completer
-           return self.filename_completer(text, line, begin_idx, end_idx, level=2)           
+           # re-use the filename completer, hard-code starting directory to '.'
+           return self.filename_completer(text, line, begin_idx, end_idx, level=2, root_dir='.')
 
+#prevents exceptions from bringing down the app
+#and offers options to handle the exception.
+def interpreter_loop():
+    try:
+        wafterpreter.cmdloop()
+        sys.exit(0)
+        
+    # handle an exception
+    except Exception as e:
+        
+        print('\nerror encountered, continue[Any-Key], show stack trace and continue[SC], show stack trace and quit[S]')
+        
+        # python2/3 compatibility check
+        try:
+            input = raw_input
+        except NameError:
+            pass
+        
+        # ask user how they want to handle the exception
+        answer = input()
 
-
+        # show stack trace and quit
+        if answer == 'S' or answer == 's':
+            raise(e)
+        
+        # show stack trace and continue
+        elif answer == 'SC' or answer == 'sc':
+            import traceback
+            traceback.print_exc()
+            
+        #present the error briefly            
+        else:
+            print('{}\n'.format(e))
+            
+    #we don't want to show the user the welcome message again.
+    wafterpreter.intro = ''
+    interpreter_loop()
+    
 #---------------------------------------------------------------
 #
 # Main function
@@ -717,6 +882,8 @@ if __name__=='__main__':
     parser.add_argument('--input', dest='inputfilename', action='store', help='read input from a file')
     parser.add_argument('--script', dest='scriptfilename', action='store', help='execute a script and stay in wafterpreter')
     parser.add_argument('--out', dest='outfilename', action='store', help='redirect output to a file')
+    parser.add_argument('--pluginpath', dest='plugin_path', action='store', help='specify the root plugin directory', default=DEFAULT_PLUGIN_PATH)
+    parser.add_argument('--historyfilename', dest='history_filename', action='store', help='specify name of command history file', default=DEFAULT_HISTORY_FILENAME)
     args = parser.parse_args()
 
     # assign default input and output streams
@@ -743,11 +910,34 @@ if __name__=='__main__':
     wafterpreter = WAFterpreter(stdin=input, stdout=output)
     
     # automatically read history in, if it exists
+    wafterpreter.global_options['HISTORY_FILENAME'] = args.history_filename
     try:
-        wafterpreter.load_history(HISTORY_FILENAME)
+        wafterpreter.load_history(wafterpreter.global_options['HISTORY_FILENAME'])#DEFAULT_HISTORY_FILENAME)
     except IOError:
         pass
     
+    # set default plugin root path...
+    wafterpreter.global_options['PLUGIN_PATH'] = DEFAULT_PLUGIN_PATH
+
+    # try to set root plugin path from environment variable
+    try:
+        wafterpreter.global_options['PLUGIN_PATH'] = os.environ['PLUGIN_PATH']
+    except KeyError as e:
+        pass
+    
+    # try to set root plugin path from command-line parameter
+    try:
+        wafterpreter.global_options['PLUGIN_PATH'] = args.plugin_path
+    except KeyError as e:
+        pass
+
+    # verify that plugin path exists
+    try:
+        os.path.isdir(wafterpreter.global_options['PLUGIN_PATH'])
+    except IOError as e:
+        print('Error: could not find plugin path or invalid plugin path specified: {}'.format(e))
+        
+
     # execute a script if the user specified one
     if args.scriptfilename:
         try:
@@ -757,4 +947,4 @@ if __name__=='__main__':
             sys.exit(3)
 
     # begin accepting commands
-    wafterpreter.cmdloop()
+    interpreter_loop()

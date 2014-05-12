@@ -1,0 +1,199 @@
+Bywaf user documentaiton
+========================
+
+Bywaf is a command-line tool for streamlining web application firewall
+auditing. It consists of a command-line interpreter and a set of
+plugins.  For the user, Bywaf supports tab-completion for most
+commands, and an easy process for installing and using plugins. Bywaf
+has been designed with forward compatibility and is compatible with
+both Python 2.x and Python 3.x.
+
+By convention, this document uses <tab> and <enter> to denote Tab
+Enter keypresses, respectively.
+
+
+Table of contents
+----------------
+
+1. Getting started
+
+
+
+Getting started
+---------------
+
+To start Bywaf, type "python bywaf.py".  Bywaf's shell will open with
+a greeting:
+
+  $ python bywaf.py
+  Welcome to Bywaf
+  Bywaf/>
+  
+On its own, Bywaf does not do very much; the bulk of Bywaf's
+functionality lies in its library of plugins.  To load a plugin, issue
+the "use" command.  It tab-completes filenames, so if you hit <tab>,
+you will see something like this:
+
+  Bywaf/>use p<tab><tab>
+  .git               INSTALL.txt        TODO            README.txt        
+  copyright.txt      plugins            bywaf.py        docs
+
+Type "p" and strike <tab> again, and Bywaf will auto-complete "p" to
+"plugins/".  As you continue typing and pressing <tab>, Bywaf will
+either auto-complete the word to the matching filename, or present you
+with a list of partially matching files.  Once you have your plugin's
+name entered, press <enter> to issue the command.  Here, we have
+loaded the Example Plugin:
+
+  Bywaf/>use plugins/beta/exampleplugin.py
+  loaded example plugin
+  Bywaf/exampleplugin>
+  
+As the plugin loads, it displays "loaded example plugin" as a
+greeting.  From here, we can explore the options commands it provides.
+
+  Bywaf/>show
+  
+  Option      Value    Default    Required  Description
+  ----------- ------   ---------- --------  -----------
+
+  FILENAME                        No         Name of the file to display
+  SLEEP_SECONDS         10        Yes        Number of seconds to sleep
+  
+  
+  Command              Description
+  -------------------- --------------------
+  cat                  display contents of a file
+  choice               Select a subcommand
+  sleepfunction        sleep for a few second
+
+
+Pressing <tab> while entering a parameter to the "show" command causes
+it to complete for option names.
+
+By default, or with "show all", the "show" command displays a plugin's
+options and commands.  To show just its options, type "show options".
+To show a particular option, type "show option" and either hit <tab>
+to get a list of available options, or type an option name explicitly.
+You can apply this same methodology to inspecting a plugin's command;
+issue the "show commands".
+
+In the screen capture above, the first table shows the available
+options for this module.  In particular, for each option, the table
+lists:
+
+  - Option: the name of the option;
+  - Value: the current value of the option;
+  - Default: the default value of the option;
+  - Required: whether or not this plugin requires this option for its
+    commands; and
+  - Description: a description of the option
+
+Below the options table lies the commands table.  This table lists:
+
+  - Command: the name of the command; and
+  - Description: a description of the command 
+
+To set an option, use the option "set" command:
+
+  Bywaf/exampleplugin>set FILENAME /etc/passwd
+  FILENAME => /etc/passwd
+  
+To see the result, run the "show" command with the name of the option
+you wish to see:
+
+  Bywaf/exampleplugin>show FILENAME
+  FILENAME: /etc/passwd
+
+To issue a command, enter the command's name:
+
+  Bywaf/exampleplugin>cat
+  
+In this example, the "cat" command will output the contents of the
+file in FILENAME.  If FILENAME is already set, and we want to run
+"cat" on a different file, specify it a parameter ("cat" tab-completes
+filenames):
+
+  Bywaf/exampleplugin>cat /etc/password
+
+
+Global options
+--------------
+Global options are options available to all plugins.
+
+
+Backgrounding tasks
+-------------------
+
+Running scripts
+---------------
+
+Scripts are lists of commands, one per line.
+3 ways of doing this:  by piping redirecting user input from standard
+input:
+
+  cat script.txt | python bywaf.py
+  
+Or on the command-line:
+
+  python bywaf.py --input=script.txt
+  
+With the --script flag, Bywaf will ... <-- remove script flag?
+
+  python bywaf.py --script=script.txt
+  
+Or   
+
+
+# FIXME: finish
+
+
+  
+
+2. Common commands
+
+A list of common commands appears below, along with a descriptions of
+each command's tab-completion behavior: 
+
+  - use:  select a module.  Tab-completes filenames.
+  
+  - kill: ends a running command.  Tab-completes to running
+    commands in the job queue.
+    
+  - d: removes a completed command from the job queue.
+    Tab-completes to completed commands in the job queue.
+    
+  - result: displays the return result of a completed command.
+    Tab-completes to completed commands in the job queue.
+    
+  - script: executes a script given a filename.  A script is a
+    list of commands, one per line.  Among other things, this is useful
+    for loading a configuration.  Tab-completes filenames.
+    
+  - gshow: shows global options.  Tab-completes global options.
+  
+  - set: when a plugin is loaded, set shows its options and
+    functions available to the user.  Tab-completes option names.
+    
+  - show: shows the currently-selected plugin's options and
+    commands available to the user.  Tab-completes option names.
+    
+  - shell: executes a command in a system shell.  Does not
+    tab-complete.
+    
+  - history: shows, clears, loads and saves the command history.
+    This is a multi-level command which first tab-completes "show",
+    "clear", "load" and "save", and for "load" and "save"
+    tab-completes filenames.
+
+
+
+
+Order of option precedence
+--------------------------
+
+Bywaf follows this order of precendence for options:
+
+  1.  Command line 
+  2.  Global and plugin options
+  3.  parameters to Bywaf commands
